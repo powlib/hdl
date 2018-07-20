@@ -66,6 +66,24 @@ module powlib_ffsync(d,q,aclk,bclk,arst,brst,vld);
   
 endmodule
 
+module powlib_edge(d,q,clk,rst);
+  parameter              W    = 1;      // Width
+  parameter      [W-1:0] INIT = 0;      // Initial value
+  parameter              EAR  = 0;      // Enable asynchronous reset
+  parameter              EHP  = 1;      // Enable high on positive edge.
+  parameter              EHN  = 0;      // Enable high on negative edge.
+  input     wire [W-1:0] d;             // Input data
+  output    wire [W-1:0] q;             // Output data
+  input     wire         clk;           // Clock
+  input     wire         rst;           // Reset
+            wire [W-1:0] q_0;
+  assign                 q = ((EHP!=0) && (d & ~q_0)) |
+                             ((EHN!=0) && (~d & q_0));             
+  
+  powlib_flipflop #(.W(W),.INIT(INIT),.EAR(EAR),.EVLD(0))  ff (.d(d),.q(q_0),.clk(clk),.rst(rst));
+
+endmodule
+
 module powlib_pipe(d,q,clk,rst,vld);
 
   parameter              W    = 1;    // Width
