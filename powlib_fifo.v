@@ -65,7 +65,7 @@ module powlib_afifo_wrcntrl(wrptr,graywrptr,grayrdptrm1,wrvld,wrrdy,wrinc,wrclk,
     .d(wrptr0),.q(graywrptr),.vld(wrinc0),.clk(wrclk),.rst(wrrst));
     
   powlib_cntr #(.W(W),.INIT(1),.EAR(EAR),.ELD(0)) cntr_inst (
-    .cntr(wrptr0),.adv(wrinc0),.clr(0),.clk(wrclk),.rst(wrrst));
+    .cntr(wrptr0),.adv(wrinc0),.clr(1'd0),.clk(wrclk),.rst(wrrst));
   
 endmodule
 
@@ -98,7 +98,7 @@ module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst)
     .d(rdptr0),.q(grayrdptr),.vld(rdinc0),.clk(rdclk),.rst(rdrst));
     
   powlib_cntr #(.W(W),.INIT(1),.EAR(EAR),.ELD(0)) cntr_inst (
-    .cntr(rdptr0),.adv(rdinc0),.clr(0),.clk(rdclk),.rst(rdrst));
+    .cntr(rdptr0),.adv(rdinc0),.clr(1'd0),.clk(rdclk),.rst(rdrst));
   
 endmodule
 
