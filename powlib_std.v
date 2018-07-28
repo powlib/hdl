@@ -10,9 +10,12 @@ module powlib_flipflop(d,q,clk,rst,vld);
   input     wire         vld;         // Valid  
   input     wire         clk;         // Clock
   input     wire         rst;         // Reset
-  output    reg  [W-1:0] q    = INIT; // Output data
-  
-            wire         vld0 = vld==1 || EVLD==0;
+  output    reg  [W-1:0] q    = INIT; // Output data  
+            reg          vld0;
+
+  always @(*) begin
+    vld0 <= vld==1 || EVLD==0;
+  end            
 
   if (EAR==0) begin
     always @(posedge clk) begin
