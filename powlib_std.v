@@ -111,27 +111,30 @@ module powlib_pipe(d,q,clk,rst,vld);
   
 endmodule
 
-module powlib_cntr(cntr,nval,adv,ld,clr,clk,rst);
+module powlib_cntr(cntr,nval,adv,ld,dx,clr,clk,rst);
   
-  parameter              W    = 32; // Width
-  parameter      [W-1:0] X    = 1;  // Increment / decrement value
-  parameter      [W-1:0] INIT = 0;  // Initialize value
-  parameter              ELD  = 1;  // Enable load feature
-  parameter              EAR  = 0;  // Enable asynchronous reset feature
-  output    wire [W-1:0] cntr;      // Current counter value
-  input     wire [W-1:0] nval;      // New value
-  input     wire         adv;       // Advances the counter
-  input     wire         ld;        // Loads a new value into counter
-  input     wire         clr;       // Clears the counter to INIT
-  input     wire         clk;       // Clock
-  input     wire         rst;       // Reset
-  
-            wire         ld0 = ld && (ELD!=0);
+  parameter              W     = 32; // Width
+  parameter      [W-1:0] X     = 1;  // Increment / decrement value
+  parameter      [W-1:0] INIT  = 0;  // Initialize value
+  parameter              ELD   = 1;  // Enable load feature
+  parameter              EDX   = 0;  // Enable dynamic increment / decrement.
+  parameter              EAR   = 0;  // Enable asynchronous reset feature
+  output    wire [W-1:0] cntr;       // Current counter value
+  input     wire [W-1:0] nval;       // New value
+  input     wire         adv;        // Advances the counter
+  input     wire         ld;         // Loads a new value into counter
+  input     wire [W-1:0] dx;         // Dynamic increment / decrement value.
+  input     wire         clr;        // Clears the counter to INIT
+  input     wire         clk;        // Clock
+  input     wire         rst;        // Reset
+   
+            wire         ld0   = ld && (ELD!=0);
+            wire [W-1:0] x0    = (EDX!=0) ? dx : X;        
   
   powlib_flipflop #(.W(W),.INIT(INIT),.EAR(EAR),.EVLD(1)) cntr_inst (
-    .d((clr) ? INIT   : 
-       (ld0) ? nval   :
-       (adv) ? cntr+X : {W{1'bz}}),
+    .d((clr) ? INIT    : 
+       (ld0) ? nval    :
+       (adv) ? cntr+x0 : {W{1'bz}}),
     .q(cntr),
     .clk(clk),
     .rst(rst),
