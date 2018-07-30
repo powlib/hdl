@@ -1,12 +1,12 @@
 `timescale 1ns / 1ps
 
-module powlib_sfifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,clk,rst);
+module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
 
 `include "powlib_std.vh"
 
   parameter                     W    = 16;       // Width
   parameter                     D    = 8;        // Depth
-  parameter                     NFS  = 0;        // Nearly full stages
+  parameter                     NFS  = 2;        // Nearly full stages
   parameter                     EAR  = 0;        // Enable asynchronous reset
   parameter                     EDBG = 0;        // Enable debug statements
   parameter                     ID   = "SFIFO";  // String identifier
