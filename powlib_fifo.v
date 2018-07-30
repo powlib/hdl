@@ -6,19 +6,22 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,clk,rst);
 
   parameter                     W    = 16;       // Width
   parameter                     D    = 8;        // Depth
-  parameter                     EAR  = 0;
+  parameter                     NFS  = 0;        // Nearly full stages
+  parameter                     EAR  = 0;        // Enable asynchronous reset
   parameter                     EDBG = 0;        // Enable debug statements
   parameter                     ID   = "SFIFO";  // String identifier
-  input      wire               clk;
-  input      wire               rst;
-  input      wire    [W-1:0]    wrdata;
-  input      wire               wrvld;
-  output     wire               wrrdy;
-  output     wire    [W-1:0]    rddata;
-  output     wire               rdvld;
-  input      wire               rdrdy;
+  input      wire               clk;             // Clock
+  input      wire               rst;             // Reset
+  input      wire    [W-1:0]    wrdata;          // Write Interface: Data
+  input      wire               wrvld;           //                  Valid data is available
+  output     wire               wrrdy;           //                  Ready for data
+  output     wire               wrnf;            //                  Nearly full
+  output     wire    [W-1:0]    rddata;          // Read Interface:  Data
+  output     wire               rdvld;           //                  Valid data is available
+  input      wire               rdrdy;           //                  Read for data
   
-  localparam integer            WPTR =  powlib_clogb2(D);
+  localparam                    WPTR  = powlib_clogb2(D);
+  localparam         [WPTR-1:0] NFT   = D-NFS-1;  // Nearly full threshold
   
              wire    [WPTR-1:0] wrptr, rdptr, rdptrm1;      
              
@@ -28,14 +31,28 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,clk,rst);
              
   assign                        rdvld = rdptr!=wrptr;
              wire               rdinc = rdvld && rdrdy;    
-             wire               rdclr = (rdptr==(D-1)) && rdinc;                
+             wire               rdclr = (rdptr==(D-1)) && rdinc;   
+
+             wire    [WPTR-1:0] amtcurr;
+             wire               amtop = wrinc || rdinc;      
+             wire    [WPTR-1:0] amtdx = (wrinc!=0 && rdinc==0) ?  1 : 
+                                        (wrinc==0 && rdinc!=0) ? -1 : 0;
+  assign                        wrnf  = amtcurr>=NFT;                     
   
   powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 wrcntr_inst  (.cntr(wrptr),.adv(wrinc),.clr(wrclr),.clk(clk),.rst(rst));
   powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 rdcntr_inst  (.cntr(rdptr),.adv(rdinc),.clr(rdclr),.clk(clk),.rst(rst));
   powlib_flipflop #(.W(WPTR),.INIT(D-1),.EVLD(1),.EAR(EAR))     rdptrm1_inst (.d(rdptr),.q(rdptrm1),.clk(clk),.rst(rst),.vld(rdinc));
+  powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR),.EDX(1))         nfcntr_inst  (.cntr(amtcurr),.adv(amtop),.dx(amtdx),.clr(0),.clk(clk),.rst(rst));
   
   powlib_dpram    #(.W(W),.D(D),.EDBG(EDBG),.ID({ID,"_DPRAM"})) ram_inst     (.wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc),.rdidx(rdptr),.rddata(rddata),.clk(clk));
-  
+
+  initial begin
+    if ((NFS+1)>D) begin
+      $display("ID: %s, NFS: %d, D: %d, NFS+1 should not be greater than D.", ID, NFS, D);
+      $finish;
+    end;
+  end
+
 endmodule
 
 module powlib_afifo_wrcntrl(wrptr,graywrptr,grayrdptrm1,wrvld,wrrdy,wrinc,wrclk,wrrst);
