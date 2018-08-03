@@ -1,15 +1,157 @@
 `timescale 1ns / 1ps
 
+module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
+
+  parameter               W      = 16;
+  parameter               NFS    = 0;
+  parameter               D      = 8;
+  parameter               P      = 0;
+  parameter               EASYNC = 0; 
+  parameter               DD     = 4;
+  parameter               EAR    = 0;        // Enable asynchronous reset  
+  parameter               ID     = "SWISS";
+  parameter               EDBG   = 0;
+  input      wire         wrclk;
+  input      wire         wrrst;
+  input      wire         rdclk;
+  input      wire         rdrst;
+  input      wire [W-1:0] wrdata;          // Write Interface: Data
+  input      wire         wrvld;           //                  Valid data is available
+  output     wire         wrrdy;           //                  Ready for data
+  output     wire         wrnf;            //                  Nearly full
+  output     wire [W-1:0] rddata;          // Read Interface:  Data
+  output     wire         rdvld;           //                  Valid data is available
+  input      wire         rdrdy;           //                  Read for data  
+
+             wire [W-1:0] data_s0_0, data_s1_0, 
+                          data_s2_0, data_s3_0,
+                          data_s4_0;
+             wire         vld_s0_0, vld_s1_0, vld_s1_1,
+                          vld_s2_0, vld_s3_0, vld_s4_0,
+                          rdy_s0_0, rdy_s1_0, rdy_s2_0,
+                          rdy_s3_0, rdy_s4_0,
+                          nf_s0_0, nf_s2_0;
+
+
+  if (P!=0 && EASYNC!=0) begin
+
+    localparam LD        = D-( 2*(S+1)+DD );
+    assign     data_s0_0 = wrdata;
+    assign     vld_s0_0  = wrvld;
+    assign     wrrdy     = rdy_s0_0;
+    assign     wrnf      = nf_s0_0;
+    assign     rdy_s1_0  = ~nf_s2_0;
+    assign     vld_s1_1  = vld_s1_1 & rdy_s1_0; 
+    assign     rddata    = data_s4_0;
+    assign     rdvld     = vld_s4_0;
+    assign     rdy_s4_0  = rdrdy;
+  
+    powlib_sfifo #(.W(W),.D(LD+S+1),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_0"})) sfifo_0_inst (
+      .wrdata(data_s0_0),.wrvld(vld_s0_0),.wrrdy(rdy_s0_0),.wrnf(nf_s0_0),
+      .rddata(data_s1_0),.rdvld(vld_s1_0),.rdrdy(rdy_s1_0), 
+      .clk(wrclk),.rst(wrrst));
+  
+    powlib_pipe #(.W(W),.EAR(EAR),.S(S)) datapipe_inst (
+      .d(data_s1_0),.q(data_s2_0),.clk(wrclk),.rst(0));
+  
+    powlib_pipe #(.W(1),.EAR(EAR),.S(S)) vldpipe_inst (
+      .d(vld_s1_1),.q(vld_s2_0),.clk(wrclk),.rst(wrrst));  
+  
+    powlib_sfifo #(.W(W),.D(S+1),.NFS(S),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_1"})) sfifo_1_inst (
+      .wrdata(data_s2_0),.wrvld(vld_s2_0),.wrrdy(rdy_s2_0),.wrnf(nf_s2_0),
+      .rddata(data_s3_0),.rdvld(vld_s3_0),.rdrdy(rdy_s3_0), 
+      .clk(wrclk),.rst(wrrst));  
+  
+    powlib_afifo #(.W(W),.D(DD),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_AFIFO"})) afifo_inst (
+      .wrdata(data_s3_0),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrclk(wrclk),.wrrst(wrrst),
+      .rddata(data_s4_0),.rdvld(vld_s4_0),.rdrdy(rdy_s4_0),.rdclk(rdclk),.rdrst(rdrst));
+
+  end
+
+  if (P!=0 && EASYNC==0) begin
+    
+    localparam LD        = D-( 2*(S+1) );
+    assign     data_s0_0 = wrdata;
+    assign     vld_s0_0  = wrvld;
+    assign     wrrdy     = rdy_s0_0;
+    assign     wrnf      = nf_s0_0;
+    assign     rdy_s1_0  = ~nf_s2_0;
+    assign     vld_s1_1  = vld_s1_1 & rdy_s1_0; 
+    assign     rddata    = data_s3_0;
+    assign     rdvld     = vld_s3_0;
+    assign     rdy_s3_0  = rdrdy;
+  
+    powlib_sfifo #(.W(W),.D(LD+S+1),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_0"})) sfifo_0_inst (
+      .wrdata(data_s0_0),.wrvld(vld_s0_0),.wrrdy(rdy_s0_0),.wrnf(nf_s0_0),
+      .rddata(data_s1_0),.rdvld(vld_s1_0),.rdrdy(rdy_s1_0), 
+      .clk(wrclk),.rst(wrrst));
+  
+    powlib_pipe #(.W(W),.EAR(EAR),.S(S)) datapipe_inst (
+      .d(data_s1_0),.q(data_s2_0),.clk(wrclk),.rst(0));
+  
+    powlib_pipe #(.W(1),.EAR(EAR),.S(S)) vldpipe_inst (
+      .d(vld_s1_1),.q(vld_s2_0),.clk(wrclk),.rst(wrrst));  
+  
+    powlib_sfifo #(.W(W),.D(S+1),.NFS(S),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_1"})) sfifo_1_inst (
+      .wrdata(data_s2_0),.wrvld(vld_s2_0),.wrrdy(rdy_s2_0),.wrnf(nf_s2_0),
+      .rddata(data_s3_0),.rdvld(vld_s3_0),.rdrdy(rdy_s3_0), 
+      .clk(wrclk),.rst(wrrst));  
+
+  end
+
+  if (P==0 && EASYNC!=0) begin
+
+    localparam LD        = D-( DD );
+    assign     data_s0_0 = wrdata;
+    assign     vld_s0_0  = wrvld;
+    assign     wrrdy     = rdy_s0_0;
+    assign     wrnf      = nf_s0_0;
+    assign     rddata    = data_s2_0;
+    assign     rdvld     = vld_s2_0;
+    assign     rdy_s2_0  = rdrdy;
+  
+    powlib_sfifo #(.W(W),.D(LD),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO"})) sfifo_inst (
+      .wrdata(data_s0_0),.wrvld(vld_s0_0),.wrrdy(rdy_s0_0),.wrnf(nf_s0_0),
+      .rddata(data_s1_0),.rdvld(vld_s1_0),.rdrdy(rdy_s1_0), 
+      .clk(wrclk),.rst(wrrst));
+  
+    powlib_afifo #(.W(W),.D(DD),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_AFIFO"})) afifo_inst (
+      .wrdata(data_s1_0),.wrvld(vld_s1_0),.wrrdy(rdy_s1_0),.wrclk(wrclk),.wrrst(wrrst),
+      .rddata(data_s2_0),.rdvld(vld_s2_0),.rdrdy(rdy_s2_0),.rdclk(rdclk),.rdrst(rdrst));
+
+  end
+
+  if (P==0 && EASYNC==0) begin
+
+    assign data_s0_0 = wrdata;
+    assign vld_s0_0  = wrvld;
+    assign wrrdy     = rdy_s0_0;
+    assign wrnf      = nf_s0_0;
+    assign rddata    = data_s1_0;
+    assign rdvld     = vld_s1_0;
+    assign rdy_s2_0  = rdrdy;
+  
+    powlib_sfifo #(.W(W),.D(D),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO"})) sfifo_inst (
+      .wrdata(data_s0_0),.wrvld(vld_s0_0),.wrrdy(rdy_s0_0),.wrnf(nf_s0_0),
+      .rddata(data_s1_0),.rdvld(vld_s1_0),.rdrdy(rdy_s1_0), 
+      .clk(wrclk),.rst(wrrst));
+
+  end
+
+endmodule
+
 module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
 
 `include "powlib_std.vh"
 
-  parameter                     W    = 16;       // Width
-  parameter                     D    = 8;        // Depth
-  parameter                     NFS  = 2;        // Nearly full stages
-  parameter                     EAR  = 0;        // Enable asynchronous reset
-  parameter                     EDBG = 0;        // Enable debug statements
-  parameter                     ID   = "SFIFO";  // String identifier
+  parameter                     W     = 16;      // Width
+  parameter                     D     = 8;       // Depth
+  parameter                     NFS   = 0;       // Nearly full stages
+  parameter                     EAR   = 0;       // Enable asynchronous reset
+  parameter                     EDBG  = 0;       // Enable debug statements
+  parameter                     ID    = "SFIFO"; // String identifier
+  localparam                    WPTR  = powlib_clogb2(D);
+  localparam         [WPTR-1:0] NFT   = D-NFS-1; // Nearly full threshold  
   input      wire               clk;             // Clock
   input      wire               rst;             // Reset
   input      wire    [W-1:0]    wrdata;          // Write Interface: Data
@@ -19,10 +161,7 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
   output     wire    [W-1:0]    rddata;          // Read Interface:  Data
   output     wire               rdvld;           //                  Valid data is available
   input      wire               rdrdy;           //                  Read for data
-  
-  localparam                    WPTR  = powlib_clogb2(D);
-  localparam         [WPTR-1:0] NFT   = D-NFS-1;  // Nearly full threshold
-  
+    
              wire    [WPTR-1:0] wrptr, rdptr, rdptrm1;      
              
   assign                        wrrdy = wrptr!=rdptrm1;
@@ -50,7 +189,11 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
     if ((NFS+1)>D) begin
       $display("ID: %s, NFS: %d, D: %d, NFS+1 should not be greater than D.", ID, NFS, D);
       $finish;
-    end;
+    end
+    if (D<2) begin
+      $display("ID: %s, D: %d, D should be at least 2.", ID, D);
+      $finish;
+    end
   end
 
 endmodule
@@ -169,7 +312,11 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
     if ((1<<WPTR)!=D) begin
       $display("ID: %s, D: %d, D is not a power of 2.", ID, D);
       $finish;
-    end;
+    end
+    if (D<2) begin
+      $display("ID: %s, D: %d, D should be at least 2.", ID, D);
+      $finish;
+    end    
   end
   
 endmodule
