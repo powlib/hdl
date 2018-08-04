@@ -5,7 +5,7 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
   parameter               W      = 16;
   parameter               NFS    = 0;
   parameter               D      = 8;
-  parameter               P      = 0;
+  parameter               S      = 0;
   parameter               EASYNC = 0; 
   parameter               DD     = 4;
   parameter               EAR    = 0;        // Enable asynchronous reset  
@@ -33,7 +33,7 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
                           nf_s0_0, nf_s2_0;
 
 
-  if (P!=0 && EASYNC!=0) begin
+  if (S!=0 && EASYNC!=0) begin
 
     localparam LD        = D-( 2*(S+1)+DD );
     assign     data_s0_0 = wrdata;
@@ -66,9 +66,16 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
       .wrdata(data_s3_0),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrclk(wrclk),.wrrst(wrrst),
       .rddata(data_s4_0),.rdvld(vld_s4_0),.rdrdy(rdy_s4_0),.rdclk(rdclk),.rdrst(rdrst));
 
+    initial begin
+      if ( ( 2*(S+1)+DD )>D ) begin
+        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than or equal to ( 2*(S+1)+DD ).", ID, D, S, DD, EASYNC);
+        $finish;
+      end
+    end
+ 
   end
 
-  if (P!=0 && EASYNC==0) begin
+  if (S!=0 && EASYNC==0) begin
     
     localparam LD        = D-( 2*(S+1) );
     assign     data_s0_0 = wrdata;
@@ -97,9 +104,16 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
       .rddata(data_s3_0),.rdvld(vld_s3_0),.rdrdy(rdy_s3_0), 
       .clk(wrclk),.rst(wrrst));  
 
+    initial begin
+      if ( ( 2*(S+1) )>D ) begin
+        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than or equal to ( 2*(S+1) ).", ID, D, S, DD, EASYNC);
+        $finish;
+      end    
+    end
+
   end
 
-  if (P==0 && EASYNC!=0) begin
+  if (S==0 && EASYNC!=0) begin
 
     localparam LD        = D-( DD );
     assign     data_s0_0 = wrdata;
@@ -119,9 +133,16 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
       .wrdata(data_s1_0),.wrvld(vld_s1_0),.wrrdy(rdy_s1_0),.wrclk(wrclk),.wrrst(wrrst),
       .rddata(data_s2_0),.rdvld(vld_s2_0),.rdrdy(rdy_s2_0),.rdclk(rdclk),.rdrst(rdrst));
 
+    initial begin
+      if ( ( DD )>D ) begin
+        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than or equal to ( DD ).", ID, D, S, DD, EASYNC);
+        $finish;
+      end    
+    end    
+
   end
 
-  if (P==0 && EASYNC==0) begin
+  if (S==0 && EASYNC==0) begin
 
     assign data_s0_0 = wrdata;
     assign vld_s0_0  = wrvld;
