@@ -2,19 +2,19 @@
 
 module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
 
-  parameter               W      = 16;
-  parameter               NFS    = 0;
-  parameter               D      = 8;
-  parameter               S      = 0;
-  parameter               EASYNC = 0; 
-  parameter               DD     = 4;
-  parameter               EAR    = 0;        // Enable asynchronous reset  
-  parameter               ID     = "SWISS";
-  parameter               EDBG   = 0;
-  input      wire         wrclk;
-  input      wire         wrrst;
-  input      wire         rdclk;
-  input      wire         rdrst;
+  parameter               W      = 16;     // Width
+  parameter               NFS    = 0;      // Nearly full stages
+  parameter               D      = 8;      // Total depth
+  parameter               S      = 0;      // Pipeline Stages
+  parameter               EASYNC = 0;      // Enable asynchronous FIFO
+  parameter               DD     = 4;      // Default Depth for asynchronous FIFO
+  parameter               EAR    = 0;      // Enable asynchronous reset  
+  parameter               ID     = "SWISS";// String identifier
+  parameter               EDBG   = 0;      // Enable debug
+  input      wire         wrclk;           // Write Clock
+  input      wire         wrrst;           // Write Reset
+  input      wire         rdclk;           // Read Clock
+  input      wire         rdrst;           // Read Reset
   input      wire [W-1:0] wrdata;          // Write Interface: Data
   input      wire         wrvld;           //                  Valid data is available
   output     wire         wrrdy;           //                  Ready for data
@@ -41,12 +41,12 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
     assign     wrrdy     = rdy_s0_0;
     assign     wrnf      = nf_s0_0;
     assign     rdy_s1_0  = ~nf_s2_0;
-    assign     vld_s1_1  = vld_s1_1 & rdy_s1_0; 
+    assign     vld_s1_1  = vld_s1_0 & rdy_s1_0; 
     assign     rddata    = data_s4_0;
     assign     rdvld     = vld_s4_0;
     assign     rdy_s4_0  = rdrdy;
   
-    powlib_sfifo #(.W(W),.D(LD+S+1),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_0"})) sfifo_0_inst (
+    powlib_sfifo #(.W(W),.D(S+1),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_0"})) sfifo_0_inst (
       .wrdata(data_s0_0),.wrvld(vld_s0_0),.wrrdy(rdy_s0_0),.wrnf(nf_s0_0),
       .rddata(data_s1_0),.rdvld(vld_s1_0),.rdrdy(rdy_s1_0), 
       .clk(wrclk),.rst(wrrst));
@@ -57,7 +57,7 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
     powlib_pipe #(.W(1),.EAR(EAR),.S(S)) vldpipe_inst (
       .d(vld_s1_1),.q(vld_s2_0),.clk(wrclk),.rst(wrrst));  
   
-    powlib_sfifo #(.W(W),.D(S+1),.NFS(S),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_1"})) sfifo_1_inst (
+    powlib_sfifo #(.W(W),.D(LD+S+1),.NFS(S),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_1"})) sfifo_1_inst (
       .wrdata(data_s2_0),.wrvld(vld_s2_0),.wrrdy(rdy_s2_0),.wrnf(nf_s2_0),
       .rddata(data_s3_0),.rdvld(vld_s3_0),.rdrdy(rdy_s3_0), 
       .clk(wrclk),.rst(wrrst));  
@@ -67,8 +67,8 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
       .rddata(data_s4_0),.rdvld(vld_s4_0),.rdrdy(rdy_s4_0),.rdclk(rdclk),.rdrst(rdrst));
 
     initial begin
-      if ( ( 2*(S+1)+DD )>D ) begin
-        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than or equal to ( 2*(S+1)+DD ).", ID, D, S, DD, EASYNC);
+      if ( ( 2*(S+1)+DD )>=D ) begin
+        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than ( 2*(S+1)+DD ).", ID, D, S, DD, EASYNC);
         $finish;
       end
     end
@@ -83,12 +83,12 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
     assign     wrrdy     = rdy_s0_0;
     assign     wrnf      = nf_s0_0;
     assign     rdy_s1_0  = ~nf_s2_0;
-    assign     vld_s1_1  = vld_s1_1 & rdy_s1_0; 
+    assign     vld_s1_1  = vld_s1_0 & rdy_s1_0; 
     assign     rddata    = data_s3_0;
     assign     rdvld     = vld_s3_0;
     assign     rdy_s3_0  = rdrdy;
   
-    powlib_sfifo #(.W(W),.D(LD+S+1),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_0"})) sfifo_0_inst (
+    powlib_sfifo #(.W(W),.D(S+1),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_0"})) sfifo_0_inst (
       .wrdata(data_s0_0),.wrvld(vld_s0_0),.wrrdy(rdy_s0_0),.wrnf(nf_s0_0),
       .rddata(data_s1_0),.rdvld(vld_s1_0),.rdrdy(rdy_s1_0), 
       .clk(wrclk),.rst(wrrst));
@@ -99,14 +99,14 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
     powlib_pipe #(.W(1),.EAR(EAR),.S(S)) vldpipe_inst (
       .d(vld_s1_1),.q(vld_s2_0),.clk(wrclk),.rst(wrrst));  
   
-    powlib_sfifo #(.W(W),.D(S+1),.NFS(S),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_1"})) sfifo_1_inst (
+    powlib_sfifo #(.W(W),.D(LD+S+1),.NFS(S),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO_1"})) sfifo_1_inst (
       .wrdata(data_s2_0),.wrvld(vld_s2_0),.wrrdy(rdy_s2_0),.wrnf(nf_s2_0),
       .rddata(data_s3_0),.rdvld(vld_s3_0),.rdrdy(rdy_s3_0), 
       .clk(wrclk),.rst(wrrst));  
 
     initial begin
-      if ( ( 2*(S+1) )>D ) begin
-        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than or equal to ( 2*(S+1) ).", ID, D, S, DD, EASYNC);
+      if ( ( 2*(S+1) )>=D ) begin
+        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than ( 2*(S+1) ).", ID, D, S, DD, EASYNC);
         $finish;
       end    
     end
@@ -134,8 +134,8 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
       .rddata(data_s2_0),.rdvld(vld_s2_0),.rdrdy(rdy_s2_0),.rdclk(rdclk),.rdrst(rdrst));
 
     initial begin
-      if ( ( DD )>D ) begin
-        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than or equal to ( DD ).", ID, D, S, DD, EASYNC);
+      if ( ( DD )>=D ) begin
+        $display("ID: %s, D: %d, S: %d, DD: %d, EASYNC: %d, D should be greater than ( DD ).", ID, D, S, DD, EASYNC);
         $finish;
       end    
     end    
@@ -150,7 +150,7 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
     assign wrnf      = nf_s0_0;
     assign rddata    = data_s1_0;
     assign rdvld     = vld_s1_0;
-    assign rdy_s2_0  = rdrdy;
+    assign rdy_s1_0  = rdrdy;
   
     powlib_sfifo #(.W(W),.D(D),.NFS(NFS),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_SFIFO"})) sfifo_inst (
       .wrdata(data_s0_0),.wrvld(vld_s0_0),.wrrdy(rdy_s0_0),.wrnf(nf_s0_0),
