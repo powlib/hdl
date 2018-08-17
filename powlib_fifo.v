@@ -2,6 +2,12 @@
 
 module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
 
+  /* --------------------------------------------------------------------------------------- 
+   * Swiss Fifo
+   * Depending on how this module is constrained, a combination of a pipe, synchronous FIFO,
+   * or asynchronous FIFO is implemented.
+   * --------------------------------------------------------------------------------------- */
+
   parameter               W      = 16;     // Width
   parameter               NFS    = 0;      // Nearly full stages
   parameter               D      = 8;      // Total depth
@@ -163,6 +169,10 @@ endmodule
 
 module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
 
+  /* --------------------------------- 
+   * Synchronous FIFO
+   * --------------------------------- */
+
 `include "powlib_std.vh"
 
   parameter                     W     = 16;      // Width
@@ -221,6 +231,10 @@ endmodule
 
 module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
 
+  /* --------------------------------- 
+   * Asynchronous FIFO
+   * --------------------------------- */
+
 `include "powlib_std.vh"
 
   parameter                  W    = 16;       // Width
@@ -229,16 +243,16 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
   parameter                  EDBG = 0;        // Enable debug statements
   parameter                  ID   = "AFIFO";  // String identifier
   localparam                 WPTR =  powlib_clogb2(D);
-  input      wire [W-1:0]    wrdata;
-  input      wire            wrvld;
-  output     wire            wrrdy;
-  output     wire [W-1:0]    rddata;
-  output     wire            rdvld;
-  input      wire            rdrdy; 
-  input      wire            wrclk;
-  input      wire            wrrst;
-  input      wire            rdclk;
-  input      wire            rdrst;
+  input      wire [W-1:0]    wrdata;          // Write Interface: Data
+  input      wire            wrvld;           //                  Valid data is available
+  output     wire            wrrdy;           //                  Ready for data
+  output     wire [W-1:0]    rddata;          // Read Interface:  Data
+  output     wire            rdvld;           //                  Valid data is available
+  input      wire            rdrdy;           //                  Ready for data
+  input      wire            wrclk;           // Write Clock
+  input      wire            wrrst;           // Write Reset
+  input      wire            rdclk;           // Read Clock
+  input      wire            rdrst;           // Read Reset
              wire            wrinc;
              wire [WPTR-1:0] wrptr, graywrptr, graywrptr0;
              wire [WPTR-1:0] rdptr, grayrdptrm1, grayrdptrm10;

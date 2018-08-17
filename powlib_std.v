@@ -2,6 +2,10 @@
 
 module powlib_flipflop(d,q,clk,rst,vld);
 
+  /* --------------------------------- 
+   * Registers data.   
+   * --------------------------------- */   
+
   parameter              W    = 1;    // Width
   parameter      [W-1:0] INIT = 0;    // Initial value
   parameter              EAR  = 0;    // Enable asynchronous reset
@@ -39,6 +43,10 @@ endmodule
 
 module powlib_ffsync(d,q,aclk,bclk,arst,brst,vld);
 
+  /* --------------------------------- 
+   * Flip flip synchronizer.   
+   * --------------------------------- */ 
+
   parameter                W    = 1;    // Width
   parameter        [W-1:0] INIT = 0;    // Initial value
   parameter                EAR  = 0;    // Enable asynchronous reset
@@ -71,6 +79,10 @@ endmodule
 
 module powlib_edge(d,q,clk,rst,vld);
 
+  /* --------------------------------- 
+   * Edge detection flip flop.    
+   * --------------------------------- */ 
+
   parameter              W    = 1;      // Width
   parameter      [W-1:0] INIT = 0;      // Initial value
   parameter              EAR  = 0;      // Enable asynchronous reset
@@ -92,6 +104,10 @@ endmodule
 
 module powlib_pipe(d,q,clk,rst,vld);
 
+  /* --------------------------------- 
+   * Pipe / Delay.    
+   * --------------------------------- */ 
+
   parameter              W    = 1;    // Width
   parameter      [W-1:0] INIT = 0;    // Initial value
   parameter              EAR  = 0;    // Enable asynchronous reset
@@ -112,6 +128,10 @@ module powlib_pipe(d,q,clk,rst,vld);
 endmodule
 
 module powlib_cntr(cntr,nval,adv,ld,dx,clr,clk,rst);
+
+  /* --------------------------------- 
+   * Counter.    
+   * --------------------------------- */
   
   parameter              W     = 32; // Width
   parameter      [W-1:0] X     = 1;  // Increment / decrement value
@@ -144,6 +164,10 @@ endmodule
 
 module powlib_grayencodeff(d,q,clk,rst,vld);
 
+  /* --------------------------------- 
+   * Gray encoder flip flop.    
+   * --------------------------------- */
+
 `include "powlib_std.vh"
 
   parameter                       W    = 1;           // Width
@@ -166,6 +190,10 @@ endmodule
 
 module powlib_graydecodeff(d,q,clk,rst,vld);
 
+  /* --------------------------------- 
+   * Gray decoder flip flop.    
+   * --------------------------------- */
+
 `include "powlib_std.vh"
 
   parameter                       W    = 1;         // Width
@@ -187,6 +215,10 @@ module powlib_graydecodeff(d,q,clk,rst,vld);
 endmodule
 
 module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,clk);
+
+  /* --------------------------------- 
+   * Dual-port ram.  
+   * --------------------------------- */
 
 `include "powlib_std.vh"
 
