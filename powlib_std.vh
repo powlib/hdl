@@ -1,7 +1,10 @@
 `ifndef POWLIB 
 `define POWLIB 
+
+`define POWLIB_BW  8  // Byte Width
 `define POWLIB_DW  32 // Default Width
 `define POWLIB_DLW 64 // Default Long Width
+
 `endif
 
 function integer powlib_clogb2;
