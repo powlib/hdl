@@ -8,26 +8,26 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
    * or asynchronous FIFO is implemented.
    * --------------------------------------------------------------------------------------- */
 
-  parameter               W      = 16;     // Width
-  parameter               NFS    = 0;      // Nearly full stages
-  parameter               D      = 8;      // Total depth
-  parameter               S      = 0;      // Pipeline Stages
-  parameter               EASYNC = 0;      // Enable asynchronous FIFO
-  parameter               DD     = 4;      // Default Depth for asynchronous FIFO
-  parameter               EAR    = 0;      // Enable asynchronous reset  
-  parameter               ID     = "SWISS";// String identifier
-  parameter               EDBG   = 0;      // Enable debug
-  input      wire         wrclk;           // Write Clock
-  input      wire         wrrst;           // Write Reset
-  input      wire         rdclk;           // Read Clock
-  input      wire         rdrst;           // Read Reset
-  input      wire [W-1:0] wrdata;          // Write Interface: Data
-  input      wire         wrvld;           //                  Valid data is available
-  output     wire         wrrdy;           //                  Ready for data
-  output     wire         wrnf;            //                  Nearly full
-  output     wire [W-1:0] rddata;          // Read Interface:  Data
-  output     wire         rdvld;           //                  Valid data is available
-  input      wire         rdrdy;           //                  Read for data  
+  parameter               W      = 16;         // Width
+  parameter               NFS    = 0;          // Nearly full stages
+  parameter               D      = 8;          // Total depth
+  parameter               S      = 0;          // Pipeline Stages
+  parameter               EASYNC = 0;          // Enable asynchronous FIFO
+  parameter               DD     = 4;          // Default Depth for asynchronous FIFO
+  parameter               EAR    = 0;          // Enable asynchronous reset  
+  parameter               ID     = "SWISSFIFO";// String identifier
+  parameter               EDBG   = 0;          // Enable debug
+  input      wire         wrclk;               // Write Clock
+  input      wire         wrrst;               // Write Reset
+  input      wire         rdclk;               // Read Clock
+  input      wire         rdrst;               // Read Reset
+  input      wire [W-1:0] wrdata;              // Write Interface: Data
+  input      wire         wrvld;               //                  Valid data is available
+  output     wire         wrrdy;               //                  Ready for data
+  output     wire         wrnf;                //                  Nearly full
+  output     wire [W-1:0] rddata;              // Read Interface:  Data
+  output     wire         rdvld;               //                  Valid data is available
+  input      wire         rdrdy;               //                  Read for data  
 
              wire [W-1:0] data_s0_0, data_s1_0, 
                           data_s2_0, data_s3_0,
