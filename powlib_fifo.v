@@ -212,7 +212,7 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
   powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 wrcntr_inst  (.cntr(wrptr),.adv(wrinc),.clr(wrclr),.clk(clk),.rst(rst));
   powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 rdcntr_inst  (.cntr(rdptr),.adv(rdinc),.clr(rdclr),.clk(clk),.rst(rst));
   powlib_flipflop #(.W(WPTR),.INIT(D-1),.EVLD(1),.EAR(EAR))     rdptrm1_inst (.d(rdptr),.q(rdptrm1),.clk(clk),.rst(rst),.vld(rdinc));
-  powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR),.EDX(1))         nfcntr_inst  (.cntr(amtcurr),.adv(amtop),.dx(amtdx),.clr(0),.clk(clk),.rst(rst));
+  powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR),.EDX(1))         nfcntr_inst  (.cntr(amtcurr),.adv(amtop),.dx(amtdx),.clr(1'b0),.clk(clk),.rst(rst));
   
   powlib_dpram    #(.W(W),.D(D),.EDBG(EDBG),.ID({ID,"_DPRAM"})) ram_inst     (.wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc),.rdidx(rdptr),.rddata(rddata),.clk(clk));
 
