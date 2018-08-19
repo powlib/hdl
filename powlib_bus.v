@@ -1,5 +1,45 @@
 `timescale 1ns / 1ps
 
+/*
+module powlib_buscross();
+  
+  genvar i, j;
+  
+  wire [B_RDS-1:0] rdys_s0_0 [0:B_WRS-1];
+  wire [B_WRS-1:0] rdys_s0_1 [0:B_RDS-1];
+  
+  for (i=0; i<B_WRS; i=i+1) begin
+    
+    assign vlds_s0_0[i] = vld_s0_0 && rdy_s0_0;
+    assign rdy_s0_0     = &rdys_s0_0[i];
+    
+    powlib_busfifo #(.NFS(),.D(),.EAR(EAR),.ID({ID,"_INPUTFIFO"}),.B_AW(B_AW),.B_DW(B_DW)) fifo_in_s0_inst (
+      .wrclk(wrclks[i]),.wrrst(wrrsts[i]),.rdclk(wrclks[i]),.rdrst(wrrsts[i]),
+      .wrdata(   wrdatas[i*B_DW+:B_DW]),.wraddr(   wraddrs[i*B_AW+:B_AW]),.wrvld(wrvlds[i]),.wrrdy(wrrdys[i]),.wrnf(wrnfs[i]),
+      .rddata(datas_s0_0[i*B_DW+:B_DW]),.rdaddr(addrs_s0_0[i*B_AW+:B_AW]),.rdvld(vld_s0_0), .rdrdy(rdy_s0_0));
+    
+  end
+  
+  for (j=0; j<B_RDS; j=j+1) begin
+    
+    for (i=0; i<B_WRS; i=i+1) begin
+      assign rdys_s0_0[i][j] = rdys_s0_1[j][i];
+    end
+    
+    powlib_buscross_lane #(
+      .NFS(),.D(),.S(),.DD(DD),.EAR(EAR),.ID({ID,"_LANE"}),.EDBG(EDBG),
+      .B_WRS(B_WRS),.B_AW(B_AW),.B_DW(B_DW),.B_EASYNCS(B_EASYNCS[j*B_WRS+:B_WRS]),
+      .B_BASE(B_BASES[j*B_AW+:B_AW]),.B_SIZE(B_SIZES[j*B_AW+:B_AW])
+    lane_s0_out_inst (
+      .wrclks(wrclks),.wrrsts(wrrsts),.rdclk(rdclks[j]),.rdrst(rdrsts[j]),
+      .wrdatas(datas_s0_0),.wraddrs(addrs_s0_0),.wrvlds(vlds_s0_0),.wrrdys(rdys_s0_1[j]),.wrnfs(nfs_s0_0),
+      .rddata(rddatas[j*B_DW+:B_DW]),.rdaddr(rdaddrs[j*B_AW+:B_AW]),.rdvld(rdvlds[j]),.rdrdys(rdrdys[j]));
+    
+  end
+  
+endmodule
+*/
+
 module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rddata,rdaddr,rdvld,rdrdy,rdclk,rdrst);
   
 
