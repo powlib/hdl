@@ -32,6 +32,7 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,rddata,rdaddr,rdvld,rd
              wire [B_WRS-1:0]      cond_s0_1;
              wire [B_WRS-1:0]      cond_s0_2;
              wire [B_WRS-1:0]      cond_s0_3;
+             wire [B_WRS-1:0]      cond_s0_4;
 
              wire [B_DW-1:0]       datas_s1_0 [0:B_WRS-1];
              wire [B_AW-1:0]       addrs_s1_0 [0:B_WRS-1];  
@@ -56,14 +57,15 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,rddata,rdaddr,rdvld,rd
     assign addrs_s0_0[i] = wraddrs[i*B_AW+:B_AW];
     assign cond_s0_0[i]  = ((addrs_s0_0[i]>=B_BASE) && (addrs_s0_0[i] < B_HIGH));
     assign cond_s0_1[i]  = wrvlds[i] && cond_s0_0[i];
-    assign cond_s0_2[i]  = ((i==0) ? 1 : !cond_s0_2[i-1]) && cond_s0_1[i];
-    assign cond_s0_3[i]  = cond_s0_2[i] && !nf_s2_0;
-    assign wrrdys[i]     = cond_s0_3[i];
+    assign cond_s0_2[i]  = ((i==0) ? 0 :  cond_s0_2[i-1]) || cond_s0_1[i];
+    assign cond_s0_3[i]  = ((i==0) ? 1 : !cond_s0_2[i-1]) && cond_s0_2[i];
+    assign cond_s0_4[i]  = cond_s0_3[i] && !nf_s2_0;
+    assign wrrdys[i]     = cond_s0_4[i];
     assign addr_s1_0     = (vlds_s1_0[i]) ? addrs_s1_0[i] : {B_AW{1'bz}};
     assign data_s1_0     = (vlds_s1_0[i]) ? datas_s1_0[i] : {B_DW{1'bz}};
     
     
-    powlib_flipflop #(         .EAR(EAR))  vld_s0_s1_0_inst (.d( cond_s0_3[i]),.q( vlds_s1_0[i]),.clk(clk),.rst(rst));
+    powlib_flipflop #(         .EAR(EAR))  vld_s0_s1_0_inst (.d( cond_s0_4[i]),.q( vlds_s1_0[i]),.clk(clk),.rst(rst));
     powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s0_s1_0_inst (.d(addrs_s0_0[i]),.q(addrs_s1_0[i]),.clk(clk),.rst(0));
     powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s0_s1_0_inst (.d(datas_s0_0[i]),.q(datas_s1_0[i]),.clk(clk),.rst(0));
 
