@@ -1,87 +1,101 @@
 `timescale 1ns / 1ps
 
-
-
-module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,rddata,rdaddr,rdvld,rdrdy,clk,rst);
-
-  parameter                        EAR    = 0;       // Enable asynchronous reset  
-  parameter                        ID     = "LANE";  // String identifier
-  parameter                        EDBG   = 0;       // Enable debug
-  parameter                        B_WRS  = 4;
-  parameter                        B_AW   = 2;
-  parameter                        B_DW   = 4;
-  parameter       [B_AW-1:0]       B_BASE = 0;
-  parameter       [B_AW-1:0]       B_SIZE = 2;
-  localparam      [B_AW-1:0]       B_HIGH = B_BASE+B_SIZE;
+module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rddata,rdaddr,rdvld,rdrdy,rdclk,rdrst);
   
-  input      wire                  clk;
-  input      wire                  rst;
+
+  parameter                        NFS       = 0;       // Nearly full stages
+  parameter                        D         = 8;       // Total depth
+  parameter                        S         = 0;       // Pipeline Stages
+  parameter                        DD        = 4;       // Default Depth for asynchronous FIFO  
+  parameter                        EAR       = 0;       // Enable asynchronous reset  
+  parameter                        ID        = "LANE";  // String identifier
+  parameter                        EDBG      = 0;       // Enable debug
+  parameter                        B_WRS     = 4;
+  parameter                        B_AW      = 2;
+  parameter                        B_DW      = 4;
+  parameter       [B_WRS-1:0]      B_EASYNCS = {1'b0,1'b0,1'b0,1'b0};          // Enable asynchronous FIFO  
+  parameter       [B_AW-1:0]       B_BASE    = 0;
+  parameter       [B_AW-1:0]       B_SIZE    = 2;
+  localparam      [B_AW-1:0]       B_HIGH    = B_BASE+B_SIZE;  
+
+  input      wire [B_WRS-1:0]      wrclks;
+  input      wire [B_WRS-1:0]      wrrsts;
   input      wire [B_WRS*B_DW-1:0] wrdatas;
   input      wire [B_WRS*B_AW-1:0] wraddrs;
   input      wire [B_WRS-1:0]      wrvlds;
-  output     wire [B_WRS-1:0]      wrrdys;
+  output     wire [B_WRS-1:0]      wrrdys; 
+  output     wire [B_WRS-1:0]      wrnfs;  
 
+  input      wire                  rdclk;
+  input      wire                  rdrst;
   output     wire [B_DW-1:0]       rddata;
   output     wire [B_AW-1:0]       rdaddr;
   output     wire                  rdvld;
-  input      wire                  rdrdy;
+  input      wire                  rdrdy;  
 
-             wire [B_DW-1:0]       datas_s0_0 [0:B_WRS-1];
-             wire [B_AW-1:0]       addrs_s0_0 [0:B_WRS-1];
-             wire [B_WRS-1:0]      cond_s0_0;
-             wire [B_WRS-1:0]      cond_s0_1;
-             wire [B_WRS-1:0]      cond_s0_2;
-             wire [B_WRS-1:0]      cond_s0_3;
-             wire [B_WRS-1:0]      cond_s0_4;
-
-             wire [B_DW-1:0]       datas_s1_0 [0:B_WRS-1];
-             wire [B_AW-1:0]       addrs_s1_0 [0:B_WRS-1];  
+             wire [B_WRS-1:0]      conds_s0_0;
              wire [B_DW-1:0]       data_s1_0;
              wire [B_AW-1:0]       addr_s1_0;
-             wire [B_WRS-1:0]      vlds_s1_0;
+             wire [B_WRS-1:0]      vlds_s1_0;               
              wire                  vld_s1_0;
-
              wire [B_DW-1:0]       data_s2_0;
-             wire [B_AW-1:0]       addr_s2_0;
+             wire [B_AW-1:0]       addr_s2_0;             
              wire                  vld_s2_0;
-             wire                  rdy_s2_0;
-             wire                  nf_s2_0;
-  
-  genvar i;
-  
-  assign vld_s1_0 = |vlds_s1_0;
-  
+
+             genvar                i;
+
+             assign                vld_s1_0 = |vlds_s1_0;
+
   for (i=0; i<B_WRS; i=i+1) begin
 
-    assign datas_s0_0[i] = wrdatas[i*B_DW+:B_DW];
-    assign addrs_s0_0[i] = wraddrs[i*B_AW+:B_AW];
-    assign cond_s0_0[i]  = ((addrs_s0_0[i]>=B_BASE) && (addrs_s0_0[i] < B_HIGH));
-    assign cond_s0_1[i]  = wrvlds[i] && cond_s0_0[i];
-    assign cond_s0_2[i]  = ((i==0) ? 0 :  cond_s0_2[i-1]) || cond_s0_1[i];
-    assign cond_s0_3[i]  = ((i==0) ? 1 : !cond_s0_2[i-1]) && cond_s0_2[i];
-    assign cond_s0_4[i]  = cond_s0_3[i] && !nf_s2_0;
-    assign wrrdys[i]     = cond_s0_4[i];
-    assign addr_s1_0     = (vlds_s1_0[i]) ? addrs_s1_0[i] : {B_AW{1'bz}};
-    assign data_s1_0     = (vlds_s1_0[i]) ? datas_s1_0[i] : {B_DW{1'bz}};
+    wire [B_DW-1:0] data_s0_0;
+    wire [B_AW-1:0] addr_s0_0;
+    wire            vld_s0_0;
+    wire            rdy_s0_0;
+    wire            cond_s0_0;
+    wire            cond_s0_1;
+    wire            cond_s0_2;
+    wire            cond_s0_3;
+
+    wire [B_DW-1:0] data_s1_1;
+    wire [B_AW-1:0] addr_s1_1;    
+
+    assign          cond_s0_0     = ((addr_s0_0>=B_BASE) && (addr_s0_0 < B_HIGH));
+    assign          cond_s0_1     = cond_s0_0 && vld_s0_0;
+    assign          conds_s0_0[i] = ((i==0) ? 0 :  conds_s0_0[i-1]) || cond_s0_1;
+    assign          cond_s0_2     = ((i==0) ? 1 : !conds_s0_0[i-1]) && conds_s0_0[i];
+    assign          cond_s0_3     = cond_s0_2 && !nf_s2_0;
+    assign          rdy_s0_0      = vld_s0_0 && !nf_s2_0;
+    assign          addr_s1_0     = (vlds_s1_0[i]) ? addr_s1_1 : {B_AW{1'bz}};
+    assign          data_s1_0     = (vlds_s1_0[i]) ? data_s1_1 : {B_DW{1'bz}};
     
-    
-    powlib_flipflop #(         .EAR(EAR))  vld_s0_s1_0_inst (.d( cond_s0_4[i]),.q( vlds_s1_0[i]),.clk(clk),.rst(rst));
-    powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s0_s1_0_inst (.d(addrs_s0_0[i]),.q(addrs_s1_0[i]),.clk(clk),.rst(0));
-    powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s0_s1_0_inst (.d(datas_s0_0[i]),.q(datas_s1_0[i]),.clk(clk),.rst(0));
+    powlib_busfifo #(
+      .D(D),.S(S),.EASYNC(B_EASYNCS[i]),.DD(DD),.EAR(EAR),
+      .ID({ID,"_INFIFO"}),.EDBG(EDBG),
+      .B_AW(B_AW),.B_DW(B_DW))
+    fifo_in_s0_inst (
+      .wrclk(wrclks[i]),.wrrst(wrrsts[i]),
+      .rdclk(rdclk),    .rdrst(rdrst),
+      .wrdata(wrdatas[i*B_DW+:B_DW]),.wraddr(wraddrs[i*B_AW+:B_AW]),.wrvld(wrvlds[i]),.wrrdy(wrrdys[i]),.wrnf(wrnfs[i]),
+      .rddata(data_s0_0),            .rdaddr(addr_s0_0),            .rdvld(vld_s0_0), .rdrdy(rdy_s0_0));
+
+    powlib_flipflop #(         .EAR(EAR))  vld_s0_s1_0_inst (.d(cond_s0_3),.q(vlds_s1_0[i]),.clk(rdclk),.rst(rdrst));
+    powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s0_s1_0_inst (.d(addr_s0_0),.q(addr_s1_1),   .clk(rdclk),.rst(0));
+    powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s0_s1_0_inst (.d(data_s0_0),.q(data_s1_1),   .clk(rdclk),.rst(0));
 
   end
 
-  powlib_flipflop #(         .EAR(EAR))  vld_s1_s2_0_inst (.d( vld_s1_0),.q( vld_s2_0),.clk(clk),.rst(rst));
-  powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s1_s2_0_inst (.d(addr_s1_0),.q(addr_s2_0),.clk(clk),.rst(0));
-  powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s1_s2_0_inst (.d(data_s1_0),.q(data_s2_0),.clk(clk),.rst(0));
-  
+  powlib_flipflop #(         .EAR(EAR))  vld_s1_s2_0_inst (.d( vld_s1_0),.q( vld_s2_0),.clk(rdclk),.rst(rdrst));
+  powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s1_s2_0_inst (.d(addr_s1_0),.q(addr_s2_0),.clk(rdclk),.rst(0));
+  powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s1_s2_0_inst (.d(data_s1_0),.q(data_s2_0),.clk(rdclk),.rst(0));  
+
   powlib_busfifo #(
-    .NFS(2),.D(8),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_BUSFIFO"}),
+    .NFS(2),.D(8),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_OUTFIFO"}),
     .B_AW(B_AW),.B_DW(B_DW)) 
-  ofifo_inst (
-    .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst),
+  fifo_s2_out_inst (
+    .wrclk(rdclk),.wrrst(rdrst),.rdclk(rdclk),.rdrst(rdrst),
     .wrdata(data_s2_0),.wraddr(addr_s2_0),.wrvld(vld_s2_0),.wrrdy(rdy_s2_0),.wrnf(nf_s2_0),
-    .rddata(rddata),.rdaddr(rdaddr),.rdvld(rdvld),.rdrdy(rdrdy));
+    .rddata(rddata),   .rdaddr(rdaddr),   .rdvld(rdvld),   .rdrdy(rdrdy));
 
 endmodule
 
