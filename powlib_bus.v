@@ -4,9 +4,9 @@
 
 module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,rddata,rdaddr,rdvld,rdrdy,clk,rst);
 
-  parameter                        AR     = 0;       // Enable asynchronous reset  
-  parameter                        D      = "LANE";  // String identifier
-  parameter                        DBG    = 0;       // Enable debug
+  parameter                        EAR    = 0;       // Enable asynchronous reset  
+  parameter                        ID     = "LANE";  // String identifier
+  parameter                        EDBG   = 0;       // Enable debug
   parameter                        B_WRS  = 4;
   parameter                        B_AW   = 2;
   parameter                        B_DW   = 4;
@@ -65,13 +65,13 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,rddata,rdaddr,rdvld,rd
     
     powlib_flipflop #(         .EAR(EAR))  vld_s0_s1_0_inst (.d( cond_s0_3[i]),.q( vlds_s1_0[i]),.clk(clk),.rst(rst));
     powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s0_s1_0_inst (.d(addrs_s0_0[i]),.q(addrs_s1_0[i]),.clk(clk),.rst(0));
-    powlib_flipflop #(.W(B_AW),.EAR(EAR)) data_s0_s1_0_inst (.d(datas_s0_0[i]),.q(datas_s1_0[i]),.clk(clk),.rst(0));
+    powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s0_s1_0_inst (.d(datas_s0_0[i]),.q(datas_s1_0[i]),.clk(clk),.rst(0));
 
   end
 
   powlib_flipflop #(         .EAR(EAR))  vld_s1_s2_0_inst (.d( vld_s1_0),.q( vld_s2_0),.clk(clk),.rst(rst));
   powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s1_s2_0_inst (.d(addr_s1_0),.q(addr_s2_0),.clk(clk),.rst(0));
-  powlib_flipflop #(.W(B_AW),.EAR(EAR)) data_s1_s2_0_inst (.d(data_s1_0),.q(data_s2_0),.clk(clk),.rst(0));
+  powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s1_s2_0_inst (.d(data_s1_0),.q(data_s2_0),.clk(clk),.rst(0));
   
   powlib_busfifo #(
     .NFS(2),.D(8),.EAR(EAR),.EDBG(EDBG),.ID({ID,"_BUSFIFO"}),
@@ -79,7 +79,7 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,rddata,rdaddr,rdvld,rd
   ofifo_inst (
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst),
     .wrdata(data_s2_0),.wraddr(addr_s2_0),.wrvld(vld_s2_0),.wrrdy(rdy_s2_0),.wrnf(nf_s2_0),
-    .rddata(rddata),   .rdaddr(rdaddr),   .rdvld(rdvld),   .rdrdy(rdrdy));
+    .rddata(rddata),.rdaddr(rdaddr),.rdvld(rdvld),.rdrdy(rdrdy));
 
 endmodule
 
@@ -98,8 +98,8 @@ module powlib_busfifo(wrdata,wraddr,wrvld,wrrdy,wrnf,wrclk,wrrst,
   parameter                   B_AW   = 2;
   parameter                   B_DW   = 4;
   localparam                  OFF_0  = 0;
-  localparam                  OFF_1  = OFF_0+B_AW;
-  localparam                  OFF_2  = OFF_1+B_DW;
+  localparam                  OFF_1  = OFF_0+B_DW;
+  localparam                  OFF_2  = OFF_1+B_AW;
   localparam                  B_WW   = OFF_2;
 
   input      wire             wrclk;
