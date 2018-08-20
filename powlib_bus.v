@@ -1,19 +1,60 @@
 `timescale 1ns / 1ps
 
-/*
-module powlib_buscross();
+module powlib_buscross(wrclks,wrrsts,wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,
+                       rdclks,rdrsts,rddatas,rdaddrs,rdvlds,rdrdys);
+
+  parameter                        NFS       = 0;                     // Nearly full stages
+  parameter                        D         = 8;                     // Total depth
+  parameter                        S         = 0;                     // Pipeline Stages 
+  parameter                        EAR       = 0;                     // Enable asynchronous reset  
+  parameter                        ID        = "BUSCROSS";            // String identifier
+  parameter                        EDBG      = 0;                     // Enable debug
+  parameter                        B_WRS     = 4;
+  parameter                        B_RDS     = 3;
+  parameter                        B_AW      = 2;
+  parameter                        B_DW      = 4;
+  parameter                        B_D       = 8;
+  parameter                        B_S       = 0;
+  parameter                        B_DD      = 4;                     // Default Depth for asynchronous FIFO   
+  parameter      [B_WRS*B_RDS-1:0] B_EASYNCS = {1'b0,1'b0,1'b0,1'b0,
+                                                1'b0,1'b0,1'b0,1'b0,
+                                                1'b0,1'b0,1'b0,1'b0}; // Enable asynchronous FIFO  
+  parameter      [B_AW*B_RDS-1:0]  B_BASES   = {2'b00,2'b10,2'b11};
+  parameter      [B_AW*B_RDS-1:0]  B_SIZES   = {2'b01,2'b00,2'b00};
+
+  input     wire [B_WRS-1:0]       wrclks;
+  input     wire [B_WRS-1:0]       wrrsts;
+  input     wire [B_WRS*B_DW-1:0]  wrdatas;
+  input     wire [B_WRS*B_AW-1:0]  wraddrs;
+  input     wire [B_WRS-1:0]       wrvlds;
+  output    wire [B_WRS-1:0]       wrrdys; 
+  output    wire [B_WRS-1:0]       wrnfs;  
+
+  input     wire [B_RDS-1:0]       rdclks;
+  input     wire [B_RDS-1:0]       rdrsts;
+  output    wire [B_RDS*B_DW-1:0]  rddatas;
+  output    wire [B_RDS*B_AW-1:0]  rdaddrs;
+  output    wire [B_RDS-1:0]       rdvlds;
+  input     wire [B_RDS-1:0]       rdrdys;               
   
-  genvar i, j;
-  
-  wire [B_RDS-1:0] rdys_s0_0 [0:B_WRS-1];
-  wire [B_WRS-1:0] rdys_s0_1 [0:B_RDS-1];
+            wire [B_WRS*B_DW-1:0]  datas_s0_0;
+            wire [B_WRS*B_AW-1:0]  addrs_s0_0;
+            wire [B_WRS-1:0]       vlds_s0_0;
+            wire [B_RDS-1:0]       rdys_s0_0 [0:B_WRS-1];
+            wire [B_WRS-1:0]       rdys_s0_1 [0:B_RDS-1];
+            wire [B_WRS-1:0]       nfs_s0_0;
+
+            genvar i, j;
   
   for (i=0; i<B_WRS; i=i+1) begin
+
+    wire   vld_s0_0;
+    wire   rdy_s0_0;
     
     assign vlds_s0_0[i] = vld_s0_0 && rdy_s0_0;
     assign rdy_s0_0     = &rdys_s0_0[i];
     
-    powlib_busfifo #(.NFS(),.D(),.EAR(EAR),.ID({ID,"_INPUTFIFO"}),.B_AW(B_AW),.B_DW(B_DW)) fifo_in_s0_inst (
+    powlib_busfifo #(.NFS(NFS),.D(D),.S(S),.EAR(EAR),.ID({ID,"_INPUTFIFO"}),.B_AW(B_AW),.B_DW(B_DW)) fifo_in_s0_inst (
       .wrclk(wrclks[i]),.wrrst(wrrsts[i]),.rdclk(wrclks[i]),.rdrst(wrrsts[i]),
       .wrdata(   wrdatas[i*B_DW+:B_DW]),.wraddr(   wraddrs[i*B_AW+:B_AW]),.wrvld(wrvlds[i]),.wrrdy(wrrdys[i]),.wrnf(wrnfs[i]),
       .rddata(datas_s0_0[i*B_DW+:B_DW]),.rdaddr(addrs_s0_0[i*B_AW+:B_AW]),.rdvld(vld_s0_0), .rdrdy(rdy_s0_0));
@@ -27,22 +68,20 @@ module powlib_buscross();
     end
     
     powlib_buscross_lane #(
-      .NFS(),.D(),.S(),.DD(DD),.EAR(EAR),.ID({ID,"_LANE"}),.EDBG(EDBG),
+      .NFS(0),.D(B_D),.S(B_S),.DD(B_DD),.EAR(EAR),.ID({ID,"_LANE"}),.EDBG(EDBG),
       .B_WRS(B_WRS),.B_AW(B_AW),.B_DW(B_DW),.B_EASYNCS(B_EASYNCS[j*B_WRS+:B_WRS]),
-      .B_BASE(B_BASES[j*B_AW+:B_AW]),.B_SIZE(B_SIZES[j*B_AW+:B_AW])
+      .B_BASE(B_BASES[j*B_AW+:B_AW]),.B_SIZE(B_SIZES[j*B_AW+:B_AW]))
     lane_s0_out_inst (
       .wrclks(wrclks),.wrrsts(wrrsts),.rdclk(rdclks[j]),.rdrst(rdrsts[j]),
       .wrdatas(datas_s0_0),.wraddrs(addrs_s0_0),.wrvlds(vlds_s0_0),.wrrdys(rdys_s0_1[j]),.wrnfs(nfs_s0_0),
-      .rddata(rddatas[j*B_DW+:B_DW]),.rdaddr(rdaddrs[j*B_AW+:B_AW]),.rdvld(rdvlds[j]),.rdrdys(rdrdys[j]));
+      .rddata(rddatas[j*B_DW+:B_DW]),.rdaddr(rdaddrs[j*B_AW+:B_AW]),.rdvld(rdvlds[j]),.rdrdy(rdrdys[j]));
     
   end
   
 endmodule
-*/
 
 module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rddata,rdaddr,rdvld,rdrdy,rdclk,rdrst);
   
-
   parameter                        NFS       = 0;       // Nearly full stages
   parameter                        D         = 8;       // Total depth
   parameter                        S         = 0;       // Pipeline Stages
@@ -54,8 +93,8 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rd
   parameter                        B_AW      = 2;
   parameter                        B_DW      = 4;
   parameter       [B_WRS-1:0]      B_EASYNCS = {1'b0,1'b0,1'b0,1'b0};          // Enable asynchronous FIFO  
-  parameter       [B_AW-1:0]       B_BASE    = 0;
-  parameter       [B_AW-1:0]       B_SIZE    = 2;
+  parameter       [B_AW-1:0]       B_BASE    = 0;       // Base address of lane
+  parameter       [B_AW-1:0]       B_SIZE    = 2;       // Number of available addresses plus 1
   localparam      [B_AW-1:0]       B_HIGH    = B_BASE+B_SIZE;  
 
   input      wire [B_WRS-1:0]      wrclks;
@@ -103,7 +142,7 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rd
     wire [B_DW-1:0] data_s2_1;
     wire [B_AW-1:0] addr_s2_1;     
 
-    assign          cond_s0_0     = ((addr_s0_0>=B_BASE) && (addr_s0_0 < B_HIGH));
+    assign          cond_s0_0     = ((addr_s0_0>=B_BASE) && (addr_s0_0<=B_HIGH));
     assign          cond_s0_1     = cond_s0_0 && vld_s0_0;
     assign          conds_s1_0[i] = ((i==0) ? 0 :  conds_s1_0[i-1]) || cond_s1_0;
     assign          cond_s1_1     = ((i==0) ? 1 : !conds_s1_0[i-1]) && conds_s1_0[i];
