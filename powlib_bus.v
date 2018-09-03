@@ -133,12 +133,12 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rd
 
     assign          addr_in_0     = wraddrs[i*B_AW+:B_AW];
     assign          data_in_0     = wrdatas[i*B_DW+:B_DW];
-    assign          cond_in_0     = (addr_in_0>=B_BASE) && (addr_in_0<=B_HIGH);
-    assign          vld_in_0      = cond_in_0 && wrvlds[i];
+    assign          cond_in_0     = (addr_in_0>=B_BASE) && (addr_in_0<=B_HIGH);       // -Only permit the entry of transactions whose 
+    assign          vld_in_0      = cond_in_0 && wrvlds[i];                           //  address falls in the memory space of the lane.
     assign          wrrdys[i]     = rdy_in_0;
     assign          wrnfs[i]      = nf_in_0; 
-    assign          conds_s0_0[i] = ((i==0) ? 0 :  conds_s0_0[i-1]) || vld_s0_0;
-    assign          cond_s0_0     = ((i==0) ? 1 : !conds_s0_0[i-1]) && conds_s0_0[i];
+    assign          conds_s0_0[i] = ((i==0) ? 0 :  conds_s0_0[i-1]) || vld_s0_0;      // -The bus writing interface with a valid transaction and whose identifier i
+    assign          cond_s0_0     = ((i==0) ? 1 : !conds_s0_0[i-1]) && conds_s0_0[i]; //  is the lowest is granted priority over the ready reading interface.
     assign          cond_s0_1     = cond_s0_0 && !nf_s2_0;
     assign          rdy_s0_0      = cond_s0_1;
     assign          addr_s1_0     = (vlds_s1_0[i]) ? addr_s1_1 : {B_AW{1'bz}};
