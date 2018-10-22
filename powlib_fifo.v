@@ -8,7 +8,7 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
    * or asynchronous FIFO is implemented.
    *
    * Due to the nature of how the FIFO
-   * is architectured, it's highly advisable
+   * is architectured, it's advisable
    * to register the outputs.   
    * --------------------------------------------------------------------------------------- */
 
@@ -176,7 +176,7 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
   /* --------------------------------- 
    * Synchronous FIFO
    * Due to the nature of how the FIFO
-   * is architectured, it's highly advisable
+   * is architectured, it's advisable
    * to register the outputs.   
    * --------------------------------- */
 
@@ -241,7 +241,7 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
   /* --------------------------------- 
    * Asynchronous FIFO
    * Due to the nature of how the FIFO
-   * is architectured, it's highly advisable
+   * is architectured, it's advisable
    * to register the outputs.
    * --------------------------------- */
 
