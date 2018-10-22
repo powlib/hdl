@@ -30,7 +30,7 @@ module powlib_flipflop(d,q,clk,rst,vld);
       end
     end
   end else begin
-    always @(posedge clk or negedge rst) begin
+    always @(posedge clk or posedge rst) begin
       if (rst==1) begin
       q <= INIT;
     end else if (vld0==1) begin
