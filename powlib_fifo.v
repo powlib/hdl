@@ -6,6 +6,10 @@ module powlib_swissfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,r
    * Swiss Fifo
    * Depending on how this module is constrained, a combination of a pipe, synchronous FIFO,
    * or asynchronous FIFO is implemented.
+   *
+   * Due to the nature of how the FIFO
+   * is architectured, it's highly advisable
+   * to register the outputs.   
    * --------------------------------------------------------------------------------------- */
 
   parameter               W      = 16;         // Width
@@ -171,6 +175,9 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
 
   /* --------------------------------- 
    * Synchronous FIFO
+   * Due to the nature of how the FIFO
+   * is architectured, it's highly advisable
+   * to register the outputs.   
    * --------------------------------- */
 
 `include "powlib_std.vh"
@@ -233,6 +240,9 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
 
   /* --------------------------------- 
    * Asynchronous FIFO
+   * Due to the nature of how the FIFO
+   * is architectured, it's highly advisable
+   * to register the outputs.
    * --------------------------------- */
 
 `include "powlib_std.vh"
