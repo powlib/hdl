@@ -3,6 +3,10 @@
 module powlib_buscross(wrclks,wrrsts,wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,
                        rdclks,rdrsts,rddatas,rdaddrs,rdvlds,rdrdys);
 
+  /* --------------------------------- 
+   * Crossbar
+   * --------------------------------- */
+
   parameter                        NFS       = 0;                     // Nearly full stages
   parameter                        D         = 8;                     // Total depth
   parameter                        S         = 0;                     // Pipeline Stages 
@@ -177,6 +181,13 @@ endmodule
 
 module powlib_busfifo(wrdata,wraddr,wrvld,wrrdy,wrnf,wrclk,wrrst,
                       rddata,rdaddr,rdvld,rdrdy,     rdclk,rdrst);
+
+  /* --------------------------------- 
+   * Bus FIFO
+   * An extension to the Swiss FIFO that
+   * breaks the data interface into 
+   * address and data.
+   * --------------------------------- */
   
   parameter                   NFS    = 0;          // Nearly full stages
   parameter                   D      = 8;          // Total depth
@@ -186,26 +197,26 @@ module powlib_busfifo(wrdata,wraddr,wrvld,wrrdy,wrnf,wrclk,wrrst,
   parameter                   EAR    = 0;          // Enable asynchronous reset  
   parameter                   ID     = "BUSFIFO";  // String identifier
   parameter                   EDBG   = 0;          // Enable debug
-  parameter                   B_AW   = 2;
-  parameter                   B_DW   = 4;
+  parameter                   B_AW   = 2;          // Bus Address Width
+  parameter                   B_DW   = 4;          // Bus Data Width
   localparam                  OFF_0  = 0;
   localparam                  OFF_1  = OFF_0+B_DW;
   localparam                  OFF_2  = OFF_1+B_AW;
   localparam                  B_WW   = OFF_2;
 
-  input      wire             wrclk;
-  input      wire             wrrst;
-  input      wire             rdclk;
-  input      wire             rdrst;     
-  input      wire [B_DW-1:0]  wrdata;
-  input      wire [B_AW-1:0]  wraddr;
-  input      wire             wrvld;
-  output     wire             wrrdy;
-  output     wire             wrnf;    
-  output     wire [B_DW-1:0]  rddata;
-  output     wire [B_AW-1:0]  rdaddr;
-  output     wire             rdvld;
-  input      wire             rdrdy;
+  input      wire             wrclk;               // Write Clock
+  input      wire             wrrst;               // Write Reset
+  input      wire             rdclk;               // Read Clock
+  input      wire             rdrst;               // Read Reset
+  input      wire [B_DW-1:0]  wrdata;              // Write Data
+  input      wire [B_AW-1:0]  wraddr;              // Write Address
+  input      wire             wrvld;               // Write Valid data is available
+  output     wire             wrrdy;               // Write Ready for data
+  output     wire             wrnf;                // Write Nearly full
+  output     wire [B_DW-1:0]  rddata;              // Read Data
+  output     wire [B_AW-1:0]  rdaddr;              // Read Address
+  output     wire             rdvld;               // Read Valid data is available
+  input      wire             rdrdy;               // Read Ready for data
              wire [B_WW-1:0]  wrword;  
              wire [B_WW-1:0]  rdword;
 
@@ -220,5 +231,35 @@ module powlib_busfifo(wrdata,wraddr,wrvld,wrrdy,wrnf,wrclk,wrrst,
   swissfifo_inst (
     .wrdata(wrword),.wrvld(wrvld),.wrrdy(wrrdy),.wrnf(wrnf),.wrclk(wrclk),.wrrst(wrrst),
     .rddata(rdword),.rdvld(rdvld),.rdrdy(rdrdy),            .rdclk(rdclk),.rdrst(rdrst));
+
+endmodule
+
+module powlib_busunpack0(indata,outdata,outbe);
+
+`include "powlib_std.vh"
+
+    parameter                                   B_BPD   = 4;
+
+    input     wire [B_BPD+`POWLIB_BW*B_BPD-1:0] indata;
+    output    wire [`POWLIB_BW*B_BPD-1:0]       outdata;
+    output    wire [B_BPD-1:0]                  outbe;
+
+    assign                                      outdata = indata[0+:`POWLIB_BW*B_BPD];
+    assign                                      outbe   = indata[`POWLIB_BW*B_BPD+:B_BPD];
+
+endmodule
+
+module powlib_buspack0(indata,inbe,outdata);
+
+`include "powlib_std.vh"
+
+    parameter                                   B_BPD                            = 4;
+
+    input     wire [B_BPD+`POWLIB_BW*B_BPD-1:0] outdata;
+    output    wire [`POWLIB_BW*B_BPD-1:0]       indata;
+    output    wire [B_BPD-1:0]                  inbe;
+
+    assign                                      outdata[0+:`POWLIB_BW*B_BPD]     = indata;
+    assign                                      outdata[`POWLIB_BW*B_BPD+:B_BPD] = inbe;
 
 endmodule
