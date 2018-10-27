@@ -1,5 +1,5 @@
-`ifndef POWLIB 
-`define POWLIB 
+`ifndef POWLIB_STD 
+`define POWLIB_STD
 
 `define POWLIB_BW  8  // Byte Width
 `define POWLIB_DW  32 // Default Width

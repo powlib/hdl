@@ -7,39 +7,39 @@ module powlib_buscross(wrclks,wrrsts,wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,
    * Crossbar
    * --------------------------------- */
 
-  parameter                        NFS       = 0;                     // Nearly full stages
-  parameter                        D         = 8;                     // Total depth
-  parameter                        S         = 0;                     // Pipeline Stages 
+  parameter                        NFS       = 0;                     // Fifo stage 0: Nearly full stages
+  parameter                        D         = 8;                     // Fifo stage 0: Total depth
+  parameter                        S         = 0;                     // Fifo stage 0: Pipeline Stages 
   parameter                        EAR       = 0;                     // Enable asynchronous reset  
   parameter                        ID        = "BUSCROSS";            // String identifier
   parameter                        EDBG      = 0;                     // Enable debug
-  parameter                        B_WRS     = 4;
-  parameter                        B_RDS     = 3;
-  parameter                        B_AW      = 2;
-  parameter                        B_DW      = 4;
-  parameter                        B_D       = 8;
-  parameter                        B_S       = 0;
-  parameter                        B_DD      = 4;                     // Default Depth for asynchronous FIFO   
+  parameter                        B_WRS     = 4;                     // Bus Writing Interfaces total
+  parameter                        B_RDS     = 3;                     // Bus Reading Interfaces total
+  parameter                        B_AW      = 2;                     // Bus Address Width
+  parameter                        B_DW      = 4;                     // Bus Data Width
+  parameter                        B_D       = 8;                     // Fifo stage 1: Total depth
+  parameter                        B_S       = 0;                     // Fifo stage 1: Pipeline stages
+  parameter                        B_DD      = 4;                     // Fifo stage 1: Default Depth for asynchronous FIFO   
   parameter      [B_WRS*B_RDS-1:0] B_EASYNCS = {1'b0,1'b0,1'b0,1'b0,
                                                 1'b0,1'b0,1'b0,1'b0,
-                                                1'b0,1'b0,1'b0,1'b0}; // Enable asynchronous FIFO  
-  parameter      [B_AW*B_RDS-1:0]  B_BASES   = {2'b00,2'b10,2'b11};
-  parameter      [B_AW*B_RDS-1:0]  B_SIZES   = {2'b01,2'b00,2'b00};
+                                                1'b0,1'b0,1'b0,1'b0}; // Fifo stage 1: Enable asynchronous FIFO. B_EASYNCS[wr+rd*B_RDS] = EASYNC between wr and rd. 
+  parameter      [B_AW*B_RDS-1:0]  B_BASES   = {2'b00,2'b10,2'b11};   // Bus Base Addresses.
+  parameter      [B_AW*B_RDS-1:0]  B_SIZES   = {2'b01,2'b00,2'b00};   // Bus Address Sizes. This size is really actual size minus one.
 
-  input     wire [B_WRS-1:0]       wrclks;
-  input     wire [B_WRS-1:0]       wrrsts;
-  input     wire [B_WRS*B_DW-1:0]  wrdatas;
-  input     wire [B_WRS*B_AW-1:0]  wraddrs;
-  input     wire [B_WRS-1:0]       wrvlds;
-  output    wire [B_WRS-1:0]       wrrdys; 
-  output    wire [B_WRS-1:0]       wrnfs;  
+  input     wire [B_WRS-1:0]       wrclks;                            // Write Clocks
+  input     wire [B_WRS-1:0]       wrrsts;                            // Write Resets
+  input     wire [B_WRS*B_DW-1:0]  wrdatas;                           // Write Datas 
+  input     wire [B_WRS*B_AW-1:0]  wraddrs;                           // Write Addresses
+  input     wire [B_WRS-1:0]       wrvlds;                            // Write Valids
+  output    wire [B_WRS-1:0]       wrrdys;                            // Write Readies
+  output    wire [B_WRS-1:0]       wrnfs;                             // Write Nearly Fulls
 
-  input     wire [B_RDS-1:0]       rdclks;
-  input     wire [B_RDS-1:0]       rdrsts;
-  output    wire [B_RDS*B_DW-1:0]  rddatas;
-  output    wire [B_RDS*B_AW-1:0]  rdaddrs;
-  output    wire [B_RDS-1:0]       rdvlds;
-  input     wire [B_RDS-1:0]       rdrdys;               
+  input     wire [B_RDS-1:0]       rdclks;                            // Read Clocks
+  input     wire [B_RDS-1:0]       rdrsts;                            // Read Resets
+  output    wire [B_RDS*B_DW-1:0]  rddatas;                           // Read Datas
+  output    wire [B_RDS*B_AW-1:0]  rdaddrs;                           // Read Addresses
+  output    wire [B_RDS-1:0]       rdvlds;                            // Read Valids
+  input     wire [B_RDS-1:0]       rdrdys;                            // Read Readies
   
             wire [B_WRS*B_DW-1:0]  datas_s0_0;
             wire [B_WRS*B_AW-1:0]  addrs_s0_0;
@@ -78,6 +78,10 @@ module powlib_buscross(wrclks,wrrsts,wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,
 endmodule
 
 module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rddata,rdaddr,rdvld,rdrdy,rdclk,rdrst);
+
+  /* --------------------------------- 
+   * Crossbar Lanes
+   * --------------------------------- */
   
   parameter                        NFS       = 0;       // Nearly full stages
   parameter                        D         = 8;       // Total depth
@@ -231,35 +235,5 @@ module powlib_busfifo(wrdata,wraddr,wrvld,wrrdy,wrnf,wrclk,wrrst,
   swissfifo_inst (
     .wrdata(wrword),.wrvld(wrvld),.wrrdy(wrrdy),.wrnf(wrnf),.wrclk(wrclk),.wrrst(wrrst),
     .rddata(rdword),.rdvld(rdvld),.rdrdy(rdrdy),            .rdclk(rdclk),.rdrst(rdrst));
-
-endmodule
-
-module powlib_busunpack0(indata,outdata,outbe);
-
-`include "powlib_std.vh"
-
-    parameter                                   B_BPD   = 4;
-
-    input     wire [B_BPD+`POWLIB_BW*B_BPD-1:0] indata;
-    output    wire [`POWLIB_BW*B_BPD-1:0]       outdata;
-    output    wire [B_BPD-1:0]                  outbe;
-
-    assign                                      outdata = indata[0+:`POWLIB_BW*B_BPD];
-    assign                                      outbe   = indata[`POWLIB_BW*B_BPD+:B_BPD];
-
-endmodule
-
-module powlib_buspack0(indata,inbe,outdata);
-
-`include "powlib_std.vh"
-
-    parameter                                   B_BPD                            = 4;
-
-    input     wire [B_BPD+`POWLIB_BW*B_BPD-1:0] outdata;
-    output    wire [`POWLIB_BW*B_BPD-1:0]       indata;
-    output    wire [B_BPD-1:0]                  inbe;
-
-    assign                                      outdata[0+:`POWLIB_BW*B_BPD]     = indata;
-    assign                                      outdata[`POWLIB_BW*B_BPD+:B_BPD] = inbe;
 
 endmodule
