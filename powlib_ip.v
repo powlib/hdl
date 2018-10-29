@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module powlib_ipunpackintr0(wrdata,rddata,rdbe,rdop);
 
 `include "powlib_std.vh"
@@ -39,10 +41,10 @@ module powlib_ippackintr0(rddata,wrdata,wrbe,wrop);
   localparam                  OFF_3                 = OFF_2+B_OPW;
   localparam                  B_WW                  = OFF_3;
  
-  input      wire [B_WW-1:0]  rddata;
-  output     wire [B_DW-1:0]  wrdata;
-  output     wire [B_BEW-1:0] wrbe;  
-  output     wire [B_OPW-1:0] wrop;
+  output     wire [B_WW-1:0]  rddata;
+  input      wire [B_DW-1:0]  wrdata;
+  input      wire [B_BEW-1:0] wrbe;  
+  input      wire [B_OPW-1:0] wrop;
   assign                      rddata[OFF_0+:B_DW]  = wrdata;
   assign                      rddata[OFF_1+:B_BEW] = wrbe;
   assign                      rddata[OFF_2+:B_OPW] = wrop;
@@ -134,8 +136,8 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   // Stage the FIFOed data. Unpack the data word.
   assign rdy_in_0 = nf_s2_0;
   assign vld_in_1 = vld_in_0 && rdy_in_0;
-  powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_in_s0_inst (.d(addr_in_0),.q(addr_s0_0),.clk(clk),.rst(0'd0));
-  powlib_flipflop #(.W(B_WW),.EAR(EAR)) data_in_s0_inst (.d(data_in_0),.q(data_s0_0),.clk(clk),.rst(0'd0));
+  powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_in_s0_inst (.d(addr_in_0),.q(addr_s0_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_WW),.EAR(EAR)) data_in_s0_inst (.d(data_in_0),.q(data_s0_0),.clk(clk),.rst(1'd0));
   powlib_flipflop #(.W(1),   .EAR(EAR)) vld_in_s0_inst  (.d(vld_in_1), .q(vld_s0_0), .clk(clk),.rst(rst));
   powlib_ipunpackintr0 #(.B_BPD(B_BPD)) unpack_s0_inst  (.wrdata(data_s0_0),.rddata(data_s0_1),.rdbe(be_s0_0),.rdop(op_s0_0));
   

@@ -7,6 +7,8 @@ module powlib_buscross(wrclks,wrrsts,wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,
    * Crossbar
    * --------------------------------- */
 
+`include "powlib_std.vh"   
+
   parameter                        NFS       = 0;                     // Fifo stage 0: Nearly full stages
   parameter                        D         = 8;                     // Fifo stage 0: Total depth
   parameter                        S         = 0;                     // Fifo stage 0: Pipeline Stages 
@@ -51,22 +53,24 @@ module powlib_buscross(wrclks,wrrsts,wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,
             genvar i, j;
   
   for (i=0; i<B_WRS; i=i+1) begin
-    wire   vld_s0_0;
-    wire   rdy_s0_0;    
-    assign vlds_s0_0[i] = vld_s0_0 && rdy_s0_0;
-    assign rdy_s0_0     = &rdys_s0_0[i];    
-    powlib_busfifo #(.NFS(NFS),.D(D),.S(S),.EAR(EAR),.ID({ID,"_INPUTFIFO"}),.B_AW(B_AW),.B_DW(B_DW)) fifo_in_s0_inst (
+    localparam [powlib_itoaw(i)-1:0] IDX_STR      = powlib_itoa(i);
+    wire                             vld_s0_0;
+    wire                             rdy_s0_0;    
+    assign                           vlds_s0_0[i] = vld_s0_0 && rdy_s0_0;
+    assign                           rdy_s0_0     = &rdys_s0_0[i];    
+    powlib_busfifo #(.NFS(NFS),.D(D),.S(S),.EAR(EAR),.ID({ID,"_INPUTFIFO",IDX_STR}),.B_AW(B_AW),.B_DW(B_DW)) fifo_in_s0_inst (
       .wrclk(wrclks[i]),.wrrst(wrrsts[i]),.rdclk(wrclks[i]),.rdrst(wrrsts[i]),
       .wrdata(   wrdatas[i*B_DW+:B_DW]),.wraddr(   wraddrs[i*B_AW+:B_AW]),.wrvld(wrvlds[i]),.wrrdy(wrrdys[i]),.wrnf(wrnfs[i]),
       .rddata(datas_s0_0[i*B_DW+:B_DW]),.rdaddr(addrs_s0_0[i*B_AW+:B_AW]),.rdvld(vld_s0_0), .rdrdy(rdy_s0_0));    
   end
   
   for (j=0; j<B_RDS; j=j+1) begin    
+    localparam [powlib_itoaw(j)-1:0] IDX_STR = powlib_itoa(j);
     for (i=0; i<B_WRS; i=i+1) begin
       assign rdys_s0_0[i][j] = rdys_s0_1[j][i];
     end    
     powlib_buscross_lane #(
-      .NFS(0),.D(B_D),.S(B_S),.DD(B_DD),.EAR(EAR),.ID({ID,"_LANE"}),.EDBG(EDBG),
+      .NFS(0),.D(B_D),.S(B_S),.DD(B_DD),.EAR(EAR),.ID({ID,"_LANE",IDX_STR}),.EDBG(EDBG),
       .B_WRS(B_WRS),.B_AW(B_AW),.B_DW(B_DW),.B_EASYNCS(B_EASYNCS[j*B_WRS+:B_WRS]),
       .B_BASE(B_BASES[j*B_AW+:B_AW]),.B_SIZE(B_SIZES[j*B_AW+:B_AW]))
     lane_s0_out_inst (
