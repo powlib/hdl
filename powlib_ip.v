@@ -122,7 +122,6 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
 
          genvar              i;
 
-
   // DPRAM instantiation.
   powlib_dpram         #(.W(B_DW),.D(RAM_D),.EWBE(1),.EDBG(EDBG),.ID({ID,"_DPRAM"})) ram_inst (
     .wridx(wridx_s0_0),.wrdata(wrdata_s0_0),.wrvld(1'd0),.wrbe(wrbe_s0_0),
@@ -162,13 +161,10 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s1_s2_inst (.d(data_s1_0),.q(data_s2_0),.clk(clk),.rst(1'd0));
   powlib_ippackintr0 #(.B_BPD(B_BPD)) pack_s2_inst   (.wrdata(data_s2_0),.wrbe({B_BEW{1'b1}}),.wrop(`POWLIB_OP_WRITE),.rddata(data_s2_1));
   
-  
   // FIFO the output data.
   powlib_busfifo #(.NFS(3),.D(8),.S(IN_S),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG),.B_AW(B_AW),.B_DW(B_WW)) outfifo_inst (
     .wrdata(data_s2_1),.wraddr(addr_s2_0),.wrvld(vld_s2_0),.wrrdy(rdy_s2_0),.wrnf(nf_s2_0),.wrclk(clk),.wrrst(rst),
     .rddata(rddata),.rdaddr(rdaddr),.rdvld(rdvld),.rdrdy(rdrdy),.rdclk(clk),.rdrst(rst));
-  
-
 
   initial begin
     if (B_DW<B_AW) begin
@@ -176,6 +172,5 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
       $finish;
     end
   end
-
 
 endmodule
