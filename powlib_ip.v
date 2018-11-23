@@ -70,8 +70,9 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   localparam                 B_BEW    = B_BPD;
   localparam                 B_OPW    = `POWLIB_OPW;
   localparam                 B_WW     = B_OPW+B_BEW+B_DW;
-  localparam                 RAM_D    = B_SIZE+1;
+  localparam                 RAM_D    = (B_SIZE+1)/B_BPD;
   localparam                 RAM_WIDX = powlib_clogb2(RAM_D);
+  localparam                 RAM_LB   = powlib_clogb2(B_BPD);
 
   input  wire                clk;
   input  wire                rst;
@@ -100,7 +101,6 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
          wire                rdy_in_0;    
              
          wire [B_AW-1:0]     addr_s0_0;
-         wire [B_AW-1:0]     addr_s0_1;
          wire [B_WW-1:0]     data_s0_0;
          wire [B_DW-1:0]     data_s0_1;
          wire [B_BEW-1:0]    be_s0_0;
@@ -111,7 +111,6 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
          wire [B_AW-1:0]     addr_s1_0;
          wire [B_DW-1:0]     data_s1_0;
          wire                vld_s1_0;
-         
          
          wire [B_AW-1:0]     addr_s2_0;
          wire [B_DW-1:0]     data_s2_0;
@@ -133,7 +132,7 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
     .rddata(data_in_0),.rdaddr(addr_in_0),.rdvld(vld_in_0),.rdrdy(rdy_in_0),.rdclk(clk),.rdrst(rst));
     
   // Stage the FIFOed data. Unpack the data word.
-  assign rdy_in_0 = nf_s2_0;
+  assign rdy_in_0 = !nf_s2_0;
   assign vld_in_1 = vld_in_0 && rdy_in_0;
   powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_in_s0_inst (.d(addr_in_0),.q(addr_s0_0),.clk(clk),.rst(1'd0));
   powlib_flipflop #(.W(B_WW),.EAR(EAR)) data_in_s0_inst (.d(data_in_0),.q(data_s0_0),.clk(clk),.rst(1'd0));
@@ -141,8 +140,7 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   powlib_ipunpackintr0 #(.B_BPD(B_BPD)) unpack_s0_inst  (.wrdata(data_s0_0),.rddata(data_s0_1),.rdbe(be_s0_0),.rdop(op_s0_0));
   
   // Set the write bit enables for the DPRAM. Determine if write operation.
-  assign addr_s0_1   = addr_s0_0-B_BASE;
-  assign wridx_s0_0  = addr_s0_1[0+:RAM_WIDX];
+  assign wridx_s0_0  = addr_s0_0[RAM_LB+:RAM_WIDX];
   assign wrdata_s0_0 = data_s0_1;
   for (i=0; i<B_BEW; i=i+1) begin
     assign wrbe_s0_0[i*`POWLIB_BW+:`POWLIB_BW] = ((vld_s0_0==1)&&(op_s0_0==`POWLIB_OP_WRITE)&&(be_s0_0[i]==1)) ? {`POWLIB_BW{1'b1}} : {`POWLIB_BW{1'b0}};
