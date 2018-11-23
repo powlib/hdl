@@ -89,7 +89,7 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   input  wire                rdrdy;
       
          wire [B_DW-1:0]     wrdata_s0_0;
-         wire [B_DW-1:0]     rddata_s1_0;
+         wire [B_DW-1:0]     rddata_s0_0;
          wire [B_DW-1:0]     wrbe_s0_0;
          wire [RAM_WIDX-1:0] wridx_s0_0;
          wire [RAM_WIDX-1:0] rdidx_s0_0;
@@ -103,6 +103,7 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
          wire [B_AW-1:0]     addr_s0_0;
          wire [B_WW-1:0]     data_s0_0;
          wire [B_DW-1:0]     data_s0_1;
+         wire [B_DW-1:0]     data_s0_2;
          wire [B_BEW-1:0]    be_s0_0;
          wire [B_OPW-1:0]    op_s0_0;
          wire                vld_s0_0;
@@ -124,7 +125,7 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   // DPRAM instantiation.
   powlib_dpram         #(.W(B_DW),.D(RAM_D),.EWBE(1),.EDBG(EDBG),.ID({ID,"_DPRAM"})) ram_inst (
     .wridx(wridx_s0_0),.wrdata(wrdata_s0_0),.wrvld(1'd0),.wrbe(wrbe_s0_0),
-    .rdidx(rdidx_s0_0),.rddata(rddata_s1_0),.clk(clk));
+    .rdidx(rdidx_s0_0),.rddata(rddata_s0_0),.clk(clk));
   
   // FIFO the input data.
   powlib_busfifo #(.NFS(IN_NFS),.D(IN_D),.S(IN_S),.EAR(EAR),.ID({ID,"_INFIFO"}),.EDBG(EDBG),.B_AW(B_AW),.B_DW(B_WW)) infifo_inst (
@@ -146,14 +147,16 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
     assign wrbe_s0_0[i*`POWLIB_BW+:`POWLIB_BW] = ((vld_s0_0==1)&&(op_s0_0==`POWLIB_OP_WRITE)&&(be_s0_0[i]==1)) ? {`POWLIB_BW{1'b1}} : {`POWLIB_BW{1'b0}};
   end
   
-  // Stage the valid read address data. The data from the write interface becomes the return address. Determine if read operation.
+  // Stage the valid read address data. The data from the write interface becomes the return address. Determine if read operation occurs.
+  // Finally, stage the output of the RAM.
   assign rdidx_s0_0 = wridx_s0_0;
   assign vld_s0_1   = (vld_s0_0==1)&&(op_s0_0==`POWLIB_OP_READ);
+  assign data_s0_2  = rddata_s0_0;
   powlib_flipflop #(.W(1),   .EAR(EAR)) vld_s0_s1_inst  (.d(vld_s0_1),          .q(vld_s1_0), .clk(clk),.rst(rst));
   powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s0_s1_inst (.d(data_s0_1[0+:B_AW]),.q(addr_s1_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s0_s1_inst (.d(data_s0_2),         .q(data_s1_0),.clk(clk),.rst(1'd0));
   
   // Stage the data from the last step before FIFO. Pack the data as well.
-  assign data_s1_0 = rddata_s1_0;
   powlib_flipflop #(.W(1),   .EAR(EAR)) vld_s1_s2_inst  (.d(vld_s1_0), .q(vld_s2_0), .clk(clk),.rst(rst));
   powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s1_s2_inst (.d(addr_s1_0),.q(addr_s2_0),.clk(clk),.rst(1'd0));
   powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s1_s2_inst (.d(data_s1_0),.q(data_s2_0),.clk(clk),.rst(1'd0));
