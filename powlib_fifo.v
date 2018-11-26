@@ -2,6 +2,8 @@
 
 module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
 
+`include "powlib_std.vh"
+
   parameter                  W      = 16;         // Writing Data Width
   parameter                  MULT   = 2;          // Reading Data Multipler
   parameter                  NFS    = 0;          // Nearly full stages
@@ -12,19 +14,34 @@ module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdcl
   parameter                  EAR    = 0;          // Enable asynchronous reset  
   parameter                  ID     = "UPFIFO";   // String identifier
   parameter                  EDBG   = 0;          // Enable debug  
-  localparam                 RD_W   = W*MULT      // Reading Data Width
+  localparam                 RD_W   = W*MULT;     // Reading Data Width
+  localparam                 PTR_W  = powlib_clogb2(RD_W);
   
-  input      wire            wrclk;               // Write Clock
-  input      wire            wrrst;               // Write Reset
-  input      wire            rdclk;               // Read Clock
-  input      wire            rdrst;               // Read Reset
-  input      wire [W-1:0]    wrdata;              // Write Interface: Data
-  input      wire            wrvld;               //                  Valid data is available
-  output     wire            wrrdy;               //                  Ready for data
-  output     wire            wrnf;                //                  Nearly full
-  output     wire [RD_W-1:0] rddata;              // Read Interface:  Data
-  output     wire            rdvld;               //                  Valid data is available
-  input      wire            rdrdy;               //                  Read for data   
+  input      wire             wrclk;               // Write Clock
+  input      wire             wrrst;               // Write Reset
+  input      wire             rdclk;               // Read Clock
+  input      wire             rdrst;               // Read Reset
+  input      wire [W-1:0]     wrdata;              // Write Interface: Data
+  input      wire             wrvld;               //                  Valid data is available
+  output     wire             wrrdy;               //                  Ready for data
+  output     wire             wrnf;                //                  Nearly full
+  output     wire [RD_W-1:0]  rddata;              // Read Interface:  Data
+  output     wire             rdvld;               //                  Valid data is available
+  input      wire             rdrdy;               //                  Read for data   
+  
+             wire [W-1:0]     data_s0_0, data_s1_0;
+			 reg [W-1:0]     datas_s2_0 [0:MULT-1];
+			 wire [RD_W-1:0]  datas_s2_1, datas_s3_0;
+			 
+			 wire             vld_s0_0, vld_s1_0, vld_s2_0,
+			                  vld_s2_1, vld_s3_0;
+							 
+             wire             rdy_s0_0, rdy_s3_0, nf_s3_0;
+			 
+			 wire [PTR_W-1:0] ptr_s2_0;
+			 wire             adv_s2_0, clr_s2_0;
+			 
+			 genvar           i;
   
   powlib_swissfifo #(.W(W),.NFS(NFS),.D(D),.S(S),
     .EASYNC(0),.EAR(EAR),
@@ -40,12 +57,11 @@ module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdcl
   assign vld_s2_1 = (ptr_s2_0==(MULT-1)) && vld_s2_0;
   assign adv_s2_0 = vld_s2_0;
   assign clr_s2_0 = vld_s2_1;
-  powlib_flipflop #(.W(W),    .EAR(EAR)) data_s1_s2_inst (.d(data_s1_0),.q(datas_s2_0[ptr_s2_0]),.clk(wrclk),.rst(1'd0));
-  powlib_flipflop #(.W(1),    .EAR(EAR)) vld_s1_s2_inst  (.d(vld_s1_0), .q(vld_s2_0),            .clk(wrclk),.rst(wrrst));
+  always @(posedge wrclk) datas_s2_0[ptr_s2_0] <= data_s1_0;  
+  powlib_flipflop #(.W(1),    .EAR(EAR)) vld_s1_s2_inst  (.d(vld_s1_0),.q(vld_s2_0),.clk(wrclk),.rst(wrrst));
   powlib_cntr     #(.W(PTR_W),.EAR(EAR)) cntr_s1_s2_inst (.cntr(ptr_s2_0),.adv(adv_s2_0),.clr(clr_s2_0),.clk(wrclk),.rst(wrrst));
   
-  for (i=0; i<MULT; i=i+1) 
-	assign datas_s2_1[i*W+:W] = datas_s2_0[i];
+  for (i=0; i<MULT; i=i+1) assign datas_s2_1[i*W+:W] = datas_s2_0[i];
   powlib_flipflop #(.W(RD_W),.EAR(EAR)) data_s2_s3_inst (.d(datas_s2_1),.q(datas_s3_0),.clk(wrclk),.rst(1'd0));
   powlib_flipflop #(.W(1),   .EAR(EAR)) vld_s2_s3_inst  (.d(vld_s2_1),  .q(vld_s3_0),  .clk(wrclk),.rst(wrrst));
   
