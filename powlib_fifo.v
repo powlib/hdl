@@ -1,6 +1,89 @@
 `timescale 1ns / 1ps
 
+module powlib_downfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
+
+`include "powlib_std.vh"
+
+  parameter                  W      = 16;         // Reading Data Width
+  parameter                  MULT   = 2;          // Writing Data Multipler
+  parameter                  NFS    = 0;          // Nearly full stages
+  parameter                  D      = 8;          // Total depth
+  parameter                  S      = 0;          // Pipeline Stages
+  parameter                  EASYNC = 0;          // Enable asynchronous FIFO
+  parameter                  DD     = 4;          // Default Depth for asynchronous FIFO
+  parameter                  EAR    = 0;          // Enable asynchronous reset  
+  parameter                  ID     = "DOWNFIFO"; // String identifier
+  parameter                  EDBG   = 0;          // Enable debug  
+  localparam                 WR_W   = W*MULT;     // Writing Data Width
+  localparam                 PTR_W  = powlib_clogb2(WR_W);
+
+  input      wire             wrclk;               // Write Clock
+  input      wire             wrrst;               // Write Reset
+  input      wire             rdclk;               // Read Clock
+  input      wire             rdrst;               // Read Reset
+  input      wire [WR_W-1:0]  wrdata;              // Write Interface: Data
+  input      wire             wrvld;               //                  Valid data is available
+  output     wire             wrrdy;               //                  Ready for data
+  output     wire             wrnf;                //                  Nearly full
+  output     wire [W-1:0]     rddata;              // Read Interface:  Data
+  output     wire             rdvld;               //                  Valid data is available
+  input      wire             rdrdy;               //                  Read for data   
+
+             genvar           i;
+             
+             wire [WR_W-1:0]  data_s0_0, data_s1_0, data_s2_0;
+             wire [W-1:0]     data_s2_1 [0:MULT-1];
+             reg  [W-1:0]     data_s3_0;
+             wire             vld_s0_0, vld_s0_1, vld_s1_0, 
+                              vld_s1_1, vld_s2_0, vld_s3_0;
+             wire             rdy_s0_0, rdy_s3_0;
+             wire             nf_s3_0;
+             wire [PTR_W-1:0] ptr_s2_0;
+             wire             adv_s1_0;
+             wire             clr_s1_0;
+  
+  powlib_swissfifo #(.W(WR_W),.NFS(NFS),.D(D),.S(S),
+    .EASYNC(EASYNC),.DD(DD),.EAR(EAR),
+    .ID({ID,"_WR_FIFO"}),.EDBG(EDBG))
+  fifo_wr_s0_inst (
+    .wrdata(wrdata),.wrvld(wrvld),.wrrdy(wrrdy),.wrnf(wrnf),.wrclk(wrclk),.wrrst(wrrst),
+    .rddata(data_s0_0),.rdvld(vld_s0_0),.rdrdy(rdy_s0_0),.rdclk(rdclk),.rdrst(rdrst));
+  
+  assign rdy_s0_0 = !nf_s3_0;
+  assign vld_s0_1 = vld_s0_0 && rdy_s0_0;
+  powlib_flipflop #(.W(WR_W), .EAR(EAR))         data_s0_s1_inst (.d(data_s0_0),.q(data_s1_0),.clk(rdclk),.rst(1'd0));
+  powlib_flipflop #(.W(1),    .EAR(EAR))          vld_s0_s1_inst (.d(vld_s0_1), .q(vld_s1_0), .clk(rdclk),.rst(rdrst));
+  
+  assign adv_s1_0 = ((vld_s1_0==1)&&(ptr_s2_0==0))||(ptr_s2_0!=0);
+  assign clr_s1_0 = (ptr_s2_0==(MULT-1));
+  assign vld_s1_1 = adv_s1_0;
+  powlib_flipflop #(.W(WR_W), .EAR(EAR))         data_s1_s2_inst (.d(data_s1_0),.q(data_s2_0),.clk(rdclk),.rst(1'd0));
+  powlib_flipflop #(.W(1),    .EAR(EAR))          vld_s1_s2_inst (.d(vld_s1_1), .q(vld_s2_0), .clk(rdclk),.rst(rdrst)); 
+  powlib_cntr     #(.W(PTR_W),.EAR(EAR),.ELD(0)) cntr_s1_s2_inst (.cntr(ptr_s2_0),.adv(adv_s1_0),.clr(clr_s1_0),.clk(rdclk),.rst(rdrst));  
+  
+  for (i=0; i<MULT; i=i+1) assign data_s2_1[i] = data_s2_0[i*W+:W];
+  always @(posedge rdclk) data_s3_0 <= data_s2_1[ptr_s2_0];
+  powlib_flipflop #(.W(1),.EAR(EAR)) vld_s2_s3_inst (.d(vld_s2_0), .q(vld_s3_0), .clk(rdclk),.rst(rdrst));
+  
+  powlib_swissfifo #(.W(W),.NFS(3+(MULT-1)),.D(10+(MULT-1)),
+    .EASYNC(0),.EAR(EAR),.ID({ID,"_RD_FIFO"}),.EDBG(EDBG))
+  fifo_s3_rd_inst (
+    .wrdata(data_s3_0),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrnf(nf_s3_0),.wrclk(rdclk),.wrrst(rdrst),
+    .rddata(rddata),.rdvld(rdvld),.rdrdy(rdrdy),.rdclk(rdclk),.rdrst(rdrst));   
+  
+endmodule
+
 module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
+
+  /* --------------------------------------------------------------------------------------- 
+   * Up Fifo
+   * Vectorizes input words. Specifically, if MULT input words of width W are clocked into the 
+   * Up Fifo's writing interface, a single output word of width W*MULT is returned from the Up
+   * Fifo's reading interface. The output word is a concatenation of the MULT input words, where
+   * the earliest input word is the least significant word in the output word.
+   *
+   * Due to the nature of how the FIFO is architectured, it's advisable to register the outputs.   
+   * --------------------------------------------------------------------------------------- */
 
 `include "powlib_std.vh"
 
@@ -30,23 +113,23 @@ module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdcl
   input      wire             rdrdy;               //                  Read for data   
   
              wire [W-1:0]     data_s0_0, data_s1_0;
-			 reg  [W-1:0]     datas_s2_0 [0:MULT-1];
-			 wire [RD_W-1:0]  datas_s2_1, datas_s3_0;
+             reg  [W-1:0]     datas_s2_0 [0:MULT-1];
+             wire [RD_W-1:0]  datas_s2_1, datas_s3_0;
 			 
-			 wire             vld_s0_0, vld_s0_1, 
-			                  vld_s1_0, vld_s1_1,
-			                  vld_s2_0, vld_s3_0;
+             wire             vld_s0_0, vld_s0_1, 
+			                        vld_s1_0, vld_s1_1,
+			                        vld_s2_0, vld_s3_0;
 							 
              wire             rdy_s0_0, rdy_s3_0, nf_s3_0;
 			 
-			 wire [PTR_W-1:0] ptr_s2_0;
-			 wire             adv_s1_0, clr_s1_0;
+			       wire [PTR_W-1:0] ptr_s2_0;
+			       wire             adv_s1_0, clr_s1_0;
 			 
-			 genvar           i;
+			       genvar           i;
   
   powlib_swissfifo #(.W(W),.NFS(NFS),.D(D),.S(S),
-    .EASYNC(0),.EAR(EAR),
-	.ID({ID,"_WR_FIFO"}),.EDBG(EDBG))
+    .EASYNC(0),.DD(DD),.EAR(EAR),
+    .ID({ID,"_WR_FIFO"}),.EDBG(EDBG))
   fifo_wr_s0_inst (
     .wrdata(wrdata),.wrvld(wrvld),.wrrdy(wrrdy),.wrnf(wrnf),.wrclk(wrclk),.wrrst(wrrst),
     .rddata(data_s0_0),.rdvld(vld_s0_0),.rdrdy(rdy_s0_0),.rdclk(wrclk),.rdrst(wrrst));
@@ -67,9 +150,9 @@ module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdcl
   powlib_flipflop #(.W(RD_W),.EAR(EAR)) data_s2_s3_inst (.d(datas_s2_1),.q(datas_s3_0),.clk(wrclk),.rst(1'd0));
   powlib_flipflop #(.W(1),   .EAR(EAR)) vld_s2_s3_inst  (.d(vld_s2_0),  .q(vld_s3_0),  .clk(wrclk),.rst(wrrst));
   
-  powlib_swissfifo #(.W(RD_W),.NFS(3),.D(10),.S(0),    
-	.EASYNC(EASYNC),.DD(DD),.EAR(EAR),
-	.ID({ID,"_RD_FIFO"}),.EDBG(EDBG))
+  powlib_swissfifo #(.W(RD_W),.NFS(3),.D(10),
+    .EASYNC(EASYNC),.EAR(EAR),
+    .ID({ID,"_RD_FIFO"}),.EDBG(EDBG))
   fifo_s3_rd_inst (
     .wrdata(datas_s3_0),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrnf(nf_s3_0),.wrclk(wrclk),.wrrst(wrrst),
     .rddata(rddata),.rdvld(rdvld),.rdrdy(rdrdy),.rdclk(rdclk),.rdrst(rdrst));  
