@@ -29,18 +29,17 @@ module powlib_downfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rd
   output     wire             rdvld;               //                  Valid data is available
   input      wire             rdrdy;               //                  Read for data   
 
-             genvar           i;
-             
-             wire [WR_W-1:0]  data_s0_0, data_s1_0, data_s2_0;
-             wire [W-1:0]     data_s2_1 [0:MULT-1];
-             reg  [W-1:0]     data_s3_0;
-             wire             vld_s0_0, vld_s0_1, vld_s1_0, 
-                              vld_s1_1, vld_s2_0, vld_s3_0;
-             wire             rdy_s0_0, rdy_s3_0;
-             wire             nf_s3_0;
-             wire [PTR_W-1:0] ptr_s2_0;
-             wire             adv_s1_0;
-             wire             clr_s1_0;
+  wire [WR_W-1:0] data_s0_0, data_s1_0;
+  wire [W-1:0] data_s1_1 [0:MULT-1];
+  reg [W-1:0] data_s2_0;
+  wire [W-1:0] data_s3_0;
+  wire vld_s0_0, vld_s0_1, vld_s1_0, vld_s1_1, vld_s2_0, vld_s3_0;
+  wire rdy_s0_0, rdy_s3_0;
+  wire nf_s3_0;
+  wire [PTR_W-1:0] ptr_s1_0;
+  wire adv_s0_0;
+  wire clr_s0_0;
+  genvar i;
   
   powlib_swissfifo #(.W(WR_W),.NFS(NFS),.D(D),.S(S),
     .EASYNC(EASYNC),.DD(DD),.EAR(EAR),
@@ -49,22 +48,22 @@ module powlib_downfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rd
     .wrdata(wrdata),.wrvld(wrvld),.wrrdy(wrrdy),.wrnf(wrnf),.wrclk(wrclk),.wrrst(wrrst),
     .rddata(data_s0_0),.rdvld(vld_s0_0),.rdrdy(rdy_s0_0),.rdclk(rdclk),.rdrst(rdrst));
   
-  assign rdy_s0_0 = !nf_s3_0;
+  assign rdy_s0_0 = !nf_s3_0 && (!adv_s0_0 || clr_s0_0);
   assign vld_s0_1 = vld_s0_0 && rdy_s0_0;
-  powlib_flipflop #(.W(WR_W), .EAR(EAR))         data_s0_s1_inst (.d(data_s0_0),.q(data_s1_0),.clk(rdclk),.rst(1'd0));
-  powlib_flipflop #(.W(1),    .EAR(EAR))          vld_s0_s1_inst (.d(vld_s0_1), .q(vld_s1_0), .clk(rdclk),.rst(rdrst));
+  assign adv_s0_0 = vld_s1_0||(ptr_s1_0!=0);
+  assign clr_s0_0 = ptr_s1_0==(MULT-1);
+  powlib_flipflop #(.W(WR_W), .EAR(EAR),.EVLD(1)) data_s0_s1_0_inst (.d(data_s0_0),.q(data_s1_0),.vld(vld_s0_1),   .clk(rdclk),.rst(1'd0));
+  powlib_flipflop #(.W(1),    .EAR(EAR))           vld_s0_s1_0_inst (.d(vld_s0_1), .q(vld_s1_0),                   .clk(rdclk),.rst(rdrst));  
+  powlib_cntr     #(.W(PTR_W),.EAR(EAR),.ELD(0))  cntr_s0_s1_0_inst (.cntr(ptr_s1_0),.adv(adv_s0_0),.clr(clr_s0_0),.clk(rdclk),.rst(rdrst));
+
+  for (i=0; i<MULT; i=i+1) assign data_s1_1[i] = data_s1_0[i*W+:W];
+  assign vld_s1_1 = adv_s0_0;
+  always @(posedge rdclk) data_s2_0 <= data_s1_1[ptr_s1_0];
+  powlib_flipflop #(.W(1),    .EAR(EAR))           vld_s1_s2_0_inst (.d(vld_s1_1), .q(vld_s2_0),                   .clk(rdclk),.rst(rdrst));
   
-  assign adv_s1_0 = ((vld_s1_0==1)&&(ptr_s2_0==0))||(ptr_s2_0!=0);
-  assign clr_s1_0 = (ptr_s2_0==(MULT-1));
-  assign vld_s1_1 = adv_s1_0;
-  powlib_flipflop #(.W(WR_W), .EAR(EAR))         data_s1_s2_inst (.d(data_s1_0),.q(data_s2_0),.clk(rdclk),.rst(1'd0));
-  powlib_flipflop #(.W(1),    .EAR(EAR))          vld_s1_s2_inst (.d(vld_s1_1), .q(vld_s2_0), .clk(rdclk),.rst(rdrst)); 
-  powlib_cntr     #(.W(PTR_W),.EAR(EAR),.ELD(0)) cntr_s1_s2_inst (.cntr(ptr_s2_0),.adv(adv_s1_0),.clr(clr_s1_0),.clk(rdclk),.rst(rdrst));  
-  
-  for (i=0; i<MULT; i=i+1) assign data_s2_1[i] = data_s2_0[i*W+:W];
-  always @(posedge rdclk) data_s3_0 <= data_s2_1[ptr_s2_0];
-  powlib_flipflop #(.W(1),.EAR(EAR)) vld_s2_s3_inst (.d(vld_s2_0), .q(vld_s3_0), .clk(rdclk),.rst(rdrst));
-  
+  powlib_flipflop #(.W(W),    .EAR(EAR))          data_s2_s3_0_inst (.d(data_s2_0),.q(data_s3_0),                  .clk(rdclk),.rst(1'd0));
+  powlib_flipflop #(.W(1),    .EAR(EAR))           vld_s2_s3_0_inst (.d(vld_s2_0), .q(vld_s3_0),                   .clk(rdclk),.rst(rdrst));   
+
   powlib_swissfifo #(.W(W),.NFS(3+(MULT-1)),.D(10+(MULT-1)),
     .EASYNC(0),.EAR(EAR),.ID({ID,"_RD_FIFO"}),.EDBG(EDBG))
   fifo_s3_rd_inst (
@@ -117,15 +116,15 @@ module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdcl
              wire [RD_W-1:0]  datas_s2_1, datas_s3_0;
 			 
              wire             vld_s0_0, vld_s0_1, 
-			                        vld_s1_0, vld_s1_1,
-			                        vld_s2_0, vld_s3_0;
+                              vld_s1_0, vld_s1_1,
+                              vld_s2_0, vld_s3_0;
 							 
              wire             rdy_s0_0, rdy_s3_0, nf_s3_0;
 			 
 			       wire [PTR_W-1:0] ptr_s2_0;
 			       wire             adv_s1_0, clr_s1_0;
 			 
-			       genvar           i;
+             genvar           i;
   
   powlib_swissfifo #(.W(W),.NFS(NFS),.D(D),.S(S),
     .EASYNC(0),.DD(DD),.EAR(EAR),
@@ -136,19 +135,19 @@ module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdcl
 	
   assign rdy_s0_0 = !nf_s3_0;
   assign vld_s0_1 = vld_s0_0 && rdy_s0_0;
-  powlib_flipflop #(.W(W),.EAR(EAR)) data_s0_s1_inst (.d(data_s0_0),.q(data_s1_0),.clk(wrclk),.rst(1'd0));
-  powlib_flipflop #(.W(1),.EAR(EAR)) vld_s0_s1_inst  (.d(vld_s0_1), .q(vld_s1_0), .clk(wrclk),.rst(wrrst));
+  powlib_flipflop #(.W(W),    .EAR(EAR))         data_s0_s1_inst  (.d(data_s0_0), .q(data_s1_0),                .clk(wrclk),.rst(1'd0));
+  powlib_flipflop #(.W(1),    .EAR(EAR))          vld_s0_s1_inst  (.d(vld_s0_1),  .q(vld_s1_0),                 .clk(wrclk),.rst(wrrst));
   
   assign vld_s1_1 = (ptr_s2_0==(MULT-1)) && vld_s1_0;
   assign adv_s1_0 = vld_s1_0;
   assign clr_s1_0 = vld_s1_1;
   always @(posedge wrclk) datas_s2_0[ptr_s2_0] <= data_s1_0;  
-  powlib_flipflop #(.W(1),    .EAR(EAR))         vld_s1_s2_inst  (.d(vld_s1_1),.q(vld_s2_0),.clk(wrclk),.rst(wrrst));
+  powlib_flipflop #(.W(1),    .EAR(EAR))          vld_s1_s2_inst  (.d(vld_s1_1),  .q(vld_s2_0),                 .clk(wrclk),.rst(wrrst));
   powlib_cntr     #(.W(PTR_W),.EAR(EAR),.ELD(0)) cntr_s1_s2_inst (.cntr(ptr_s2_0),.adv(adv_s1_0),.clr(clr_s1_0),.clk(wrclk),.rst(wrrst));
   
   for (i=0; i<MULT; i=i+1) assign datas_s2_1[i*W+:W] = datas_s2_0[i];
-  powlib_flipflop #(.W(RD_W),.EAR(EAR)) data_s2_s3_inst (.d(datas_s2_1),.q(datas_s3_0),.clk(wrclk),.rst(1'd0));
-  powlib_flipflop #(.W(1),   .EAR(EAR)) vld_s2_s3_inst  (.d(vld_s2_0),  .q(vld_s3_0),  .clk(wrclk),.rst(wrrst));
+  powlib_flipflop #(.W(RD_W),.EAR(EAR))          data_s2_s3_inst  (.d(datas_s2_1),.q(datas_s3_0),               .clk(wrclk),.rst(1'd0));
+  powlib_flipflop #(.W(1),   .EAR(EAR))          vld_s2_s3_inst   (.d(vld_s2_0),  .q(vld_s3_0),                 .clk(wrclk),.rst(wrrst));
   
   powlib_swissfifo #(.W(RD_W),.NFS(3),.D(10),
     .EASYNC(EASYNC),.EAR(EAR),
