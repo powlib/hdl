@@ -7,10 +7,10 @@ module powlib_downfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rd
   parameter                  W      = 16;         // Reading Data Width
   parameter                  MULT   = 2;          // Writing Data Multipler
   parameter                  NFS    = 0;          // Nearly full stages
-  parameter                  D      = 8;          // Total depth
+  parameter                  D      = 12;         // Total depth
   parameter                  S      = 0;          // Pipeline Stages
   parameter                  EASYNC = 0;          // Enable asynchronous FIFO
-  parameter                  DD     = 4;          // Default Depth for asynchronous FIFO
+  parameter                  DD     = 8;          // Default Depth for asynchronous FIFO
   parameter                  EAR    = 0;          // Enable asynchronous reset  
   parameter                  ID     = "DOWNFIFO"; // String identifier
   parameter                  EDBG   = 0;          // Enable debug  
@@ -29,17 +29,21 @@ module powlib_downfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rd
   output     wire             rdvld;               //                  Valid data is available
   input      wire             rdrdy;               //                  Read for data   
 
-  wire [WR_W-1:0] data_s0_0, data_s1_0;
-  wire [W-1:0] data_s1_1 [0:MULT-1];
-  reg [W-1:0] data_s2_0;
-  wire [W-1:0] data_s3_0;
-  wire vld_s0_0, vld_s0_1, vld_s1_0, vld_s1_1, vld_s2_0, vld_s3_0;
-  wire rdy_s0_0, rdy_s3_0;
-  wire nf_s3_0;
-  wire [PTR_W-1:0] ptr_s1_0;
-  wire adv_s0_0;
-  wire clr_s0_0;
-  genvar i;
+             wire [WR_W-1:0]  data_s0_0, data_s1_0;
+             wire [W-1:0]     data_s1_1 [0:MULT-1];
+             reg  [W-1:0]     data_s2_0;
+             wire [W-1:0]     data_s3_0;
+             
+             wire             vld_s0_0, vld_s0_1, vld_s1_0, 
+                              vld_s1_1, vld_s2_0, vld_s3_0;
+             wire             rdy_s0_0, rdy_s3_0;
+             
+             wire             nf_s3_0;             
+             wire [PTR_W-1:0] ptr_s1_0;
+             wire             adv_s0_0;
+             wire             clr_s0_0;
+             
+             genvar           i;
   
   powlib_swissfifo #(.W(WR_W),.NFS(NFS),.D(D),.S(S),
     .EASYNC(EASYNC),.DD(DD),.EAR(EAR),
@@ -50,8 +54,8 @@ module powlib_downfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rd
   
   assign rdy_s0_0 = !nf_s3_0 && (!adv_s0_0 || clr_s0_0);
   assign vld_s0_1 = vld_s0_0 && rdy_s0_0;
-  assign adv_s0_0 = vld_s1_0||(ptr_s1_0!=0);
-  assign clr_s0_0 = ptr_s1_0==(MULT-1);
+  assign adv_s0_0 = vld_s1_0 || (ptr_s1_0!=0);
+  assign clr_s0_0 = ptr_s1_0 == (MULT-1);
   powlib_flipflop #(.W(WR_W), .EAR(EAR),.EVLD(1)) data_s0_s1_0_inst (.d(data_s0_0),.q(data_s1_0),.vld(vld_s0_1),   .clk(rdclk),.rst(1'd0));
   powlib_flipflop #(.W(1),    .EAR(EAR))           vld_s0_s1_0_inst (.d(vld_s0_1), .q(vld_s1_0),                   .clk(rdclk),.rst(rdrst));  
   powlib_cntr     #(.W(PTR_W),.EAR(EAR),.ELD(0))  cntr_s0_s1_0_inst (.cntr(ptr_s1_0),.adv(adv_s0_0),.clr(clr_s0_0),.clk(rdclk),.rst(rdrst));
