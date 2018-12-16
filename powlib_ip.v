@@ -51,6 +51,89 @@ module powlib_ippackintr0(rddata,wrdata,wrbe,wrop);
 
 endmodule
 
+module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
+                     awid,awaddr,awlen,awsize,awburst,awvalid,awready,
+                     wdata,wstrb,wlast,wvalid,wready,
+                     bid,bresp,bvalid,bready,
+                     arid,araddr,arlen,arsize,arburst,arvalid,arready,
+                     rid,rdata,rresp,rlast,rvalid,rready,
+                     clk,rst);
+                     
+`include "powlib_ip.vh"        
+
+  parameter                     ID       = "IPMAXI";  // String identifier  
+  parameter                     EAR      = 0;         // Enable asynchronous reset  
+  parameter                     EDBG     = 0;
+  parameter                     IDW      = 1;
+  parameter                     IN_NFS   = 0;
+  parameter                     IN_D     = 8;
+  parameter                     IN_S     = 0;
+  parameter                     B_SIZE   = 8'd15;
+  parameter                     B_BPD    = 4;
+  parameter                     B_AW     = `POWLIB_BW*B_BPD;
+  localparam                    B_DW     = `POWLIB_BW*B_BPD;
+  localparam                    B_BEW    = B_BPD;
+  localparam                    B_OPW    = `POWLIB_OPW;
+  localparam                    B_WW     = B_OPW+B_BEW+B_DW;             
+                     
+  /* GLOBAL SYNCHRONIZATION INTERFACE. */
+  input  wire                   clk;
+  input  wire                   rst;
+      
+  /* POWLIB INTERFACE */  
+  /* Writing */
+  input  wire [B_AW-1:0]        wraddr;
+  input  wire [B_WW-1:0]        wrdata;
+  input  wire                   wrvld;
+  output wire                   wrrdy;
+  output wire                   wrnf;      
+  // Reading
+  output wire [B_AW-1:0]        rdaddr;
+  output wire [B_WW-1:0]        rddata;
+  output wire                   rdvld;
+  input  wire                   rdrdy;                     
+  
+  /* MASTER AXI INTERFACE. */
+  // Writing Address
+  output wire [IDW-1:0]         awid;
+  output wire [B_AW-1:0]        awaddr;
+  output wire [`AXI_LENW-1:0]   awlen;
+  output wire [`AXI_SIZEW-1:0]  awsize;
+  output wire [`AXI_BURSTW-1:0] awburst;
+  output wire                   awvalid;
+  input  wire                   awready;
+  // Writing Data
+  output wire [B_DW-1:0]        wdata;
+  output wire [B_BPD-1:0]       wstrb;
+  output wire                   wlast;
+  output wire                   wvalid;
+  input  wire                   wready;
+  // Writing Response
+  input  wire [IDW-1:0]         bid;
+  input  wire [`AXI_RESPW-1:0]  bresp;
+  input  wire                   bvalid;
+  output wire                   bready;
+  // Reading Address
+  output wire [IDW-1:0]         arid;
+  output wire [B_AW-1:0]        araddr;
+  output wire [`AXI_LENW-1:0]   arlen;
+  output wire [`AXI_SIZEW-1:0]  arsize;
+  output wire [`AXI_BURSTW-1:0] arburst;
+  output wire                   arvalid;
+  input  wire                   arready;
+  // Reading Data
+  input  wire [IDW-1:0]         rid;
+  input  wire [B_DW-1:0]        rdata;
+  input  wire [`AXI_RESPW-1:0]  rresp;
+  input  wire                   rlast;
+  input  wire                   rvalid;
+  output wire                   rready;  
+  
+  
+  
+  
+endmodule
+
 module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk,rst);
 
 `include "powlib_std.vh"
@@ -62,7 +145,6 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   parameter                  IN_NFS   = 0;
   parameter                  IN_D     = 8;
   parameter                  IN_S     = 0;
-  parameter                  B_BASE   = 8'd0;
   parameter                  B_SIZE   = 8'd15;
   parameter                  B_BPD    = 4;
   parameter                  B_AW     = `POWLIB_BW*B_BPD;
