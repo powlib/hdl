@@ -2,6 +2,17 @@
 
 module powlib_downfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
 
+  /* --------------------------------------------------------------------------------------- 
+   * Down FIFO
+   * Decomposes input words into one or more output words. Specifically, if a single input word
+   * of width W*MULT is clocked into the Down FIFO's writing interface, MULT output words of W
+   * are returned from the Down FIFO's reading interface. The output words are a decomposition 
+   * the single input word, where the earliest output word if the least significant word in the
+   * single word.
+   *
+   * Due to the nature of how the FIFO is architectured, it's advisable to register the outputs.   
+   * --------------------------------------------------------------------------------------- */
+
 `include "powlib_std.vh"
 
   parameter                  W      = 16;         // Reading Data Width
@@ -79,7 +90,7 @@ endmodule
 module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
 
   /* --------------------------------------------------------------------------------------- 
-   * Up Fifo
+   * Up FIFO
    * Vectorizes input words. Specifically, if MULT input words of width W are clocked into the 
    * Up Fifo's writing interface, a single output word of width W*MULT is returned from the Up
    * Fifo's reading interface. The output word is a concatenation of the MULT input words, where
@@ -125,8 +136,8 @@ module powlib_upfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,wrclk,wrrst,rdcl
 							 
              wire             rdy_s0_0, rdy_s3_0, nf_s3_0;
 			 
-			       wire [PTR_W-1:0] ptr_s2_0;
-			       wire             adv_s1_0, clr_s1_0;
+             wire [PTR_W-1:0] ptr_s2_0;
+             wire             adv_s1_0, clr_s1_0;
 			 
              genvar           i;
   
