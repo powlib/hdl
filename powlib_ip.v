@@ -64,7 +64,6 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   parameter                     ID       = "IPMAXI";  // String identifier  
   parameter                     EAR      = 0;         // Enable asynchronous reset  
   parameter                     EDBG     = 0;
-  parameter                     IDW      = 1;
   parameter                     IN_NFS   = 0;
   parameter                     IN_D     = 8;
   parameter                     IN_S     = 0;
@@ -74,7 +73,7 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   localparam                    B_DW     = `POWLIB_BW*B_BPD;
   localparam                    B_BEW    = B_BPD;
   localparam                    B_OPW    = `POWLIB_OPW;
-  localparam                    B_WW     = B_OPW+B_BEW+B_DW;             
+  localparam                    B_WW     = B_OPW+B_BEW+B_DW;   
                      
   /* GLOBAL SYNCHRONIZATION INTERFACE. */
   input  wire                   clk;
@@ -94,27 +93,24 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   input  wire                   rdrdy;                     
   
   /* MASTER AXI INTERFACE. */
-  // Writing Address
-  output wire [IDW-1:0]         awid;
+  // Address Writing
   output wire [B_AW-1:0]        awaddr;
   output wire [`AXI_LENW-1:0]   awlen;
   output wire [`AXI_SIZEW-1:0]  awsize;
   output wire [`AXI_BURSTW-1:0] awburst;
   output wire                   awvalid;
   input  wire                   awready;
-  // Writing Data
+  // Writing Data 
   output wire [B_DW-1:0]        wdata;
-  output wire [B_BPD-1:0]       wstrb;
+  output wire [B_BEW-1:0]       wstrb;
   output wire                   wlast;
   output wire                   wvalid;
   input  wire                   wready;
   // Writing Response
-  input  wire [IDW-1:0]         bid;
   input  wire [`AXI_RESPW-1:0]  bresp;
   input  wire                   bvalid;
   output wire                   bready;
-  // Reading Address
-  output wire [IDW-1:0]         arid;
+  // Address Reading 
   output wire [B_AW-1:0]        araddr;
   output wire [`AXI_LENW-1:0]   arlen;
   output wire [`AXI_SIZEW-1:0]  arsize;
@@ -122,17 +118,128 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   output wire                   arvalid;
   input  wire                   arready;
   // Reading Data
-  input  wire [IDW-1:0]         rid;
   input  wire [B_DW-1:0]        rdata;
   input  wire [`AXI_RESPW-1:0]  rresp;
   input  wire                   rlast;
   input  wire                   rvalid;
   output wire                   rready;  
   
-  
-  
-  
+
+
 endmodule
+
+module powlib_ipmaxi_wr(wraddr,wrdata,wrbe,wrvld,wrrdy,wrnf,
+                        awid,awaddr,awlen,awsize,awburst,awvalid,awready,
+                        wdata,wstrb,wlast,wvalid,wready,
+                        clk,rst);
+      
+`include "powlib_std.vh"
+`include "powlib_ip.vh"   
+
+  localparam CL2MAX_BURST = powlib_clogb2(MAX_BURST);
+      
+  // PLB Writing 
+  input  wire [B_AW-1:0]        wraddr;
+  input  wire [B_DW-1:0]        wrdata;
+  input  wire [B_BEW-1:0]       wrbe;
+  input  wire                   wrvld;
+  output wire                   wrrdy;
+  output wire                   wrnf;        
+  // AXI Address Writing
+  output wire [B_AW-1:0]        awaddr;
+  output wire [`AXI_LENW-1:0]   awlen;
+  output wire [`AXI_SIZEW-1:0]  awsize;
+  output wire [`AXI_BURSTW-1:0] awburst;
+  output wire                   awvalid;
+  input  wire                   awready;
+  // AXI Writing Data 
+  output wire [B_DW-1:0]        wdata;
+  output wire [B_BEW-1:0]       wstrb;
+  output wire                   wlast;
+  output wire                   wvalid;
+  input  wire                   wready;                          
+     
+  // Combinational Logic   
+  assign awsize  = CL2MAX_BURST;
+  assign awburst = `AXI_INCRBT;
+  
+  assign data_in_0[0+:B_DW]              = wrdata;
+  assign data_in_0[(0+B_DW)+:B_AW]       = wraddr;
+  assign data_in_0[(0+B_DW+B_AW)+:B_BEW] = wrbe;
+  assign data_s0_1 = data_s0_0[0+:B_DW];
+  assign addr_s0_0 = data_s0_0[(0+B_DW)+:B_AW];
+  assign be_s0_0   = data_s0_0[(0+B_DW+B_AW)+:B_BEW];
+  
+  assign data_aws3_0[0+:B_AW]             = addr_aws3_0;
+  assign data_aws3_0[(0+B_AW)+:`AXI_LENW] = len_aws3_0;
+  assign awaddr = data_awout_0[0+:B_AW];
+  assign awlen  = data_awout_0[(0+B_AW)+:`AXI_LENW]; 
+  
+  assign data_ws3_1[0+:B_DW]           = data_ws3_0;
+  assign data_ws3_1[(0+B_DW)+:B_BEW]   = strb_ws3_0;
+  assign data_ws3_1[(0+B_DW+B_BEW)+:1] = last_ws3_0;
+  assign wdata = data_wout_0[0+:B_DW];
+  assign wstrb = data_wout_0[(0+B_DW)+:B_BEW];
+  assign wlast = data_wout_0[(0+B_DW+B_BEW)+:1];
+  
+  assign rdy_s0_0     = !wrnf_aws3_0 && !wrnf_ws3_0;  
+  assign vld_s0_1     = vld_s0_0 && rdy_s0_0;
+  assign adv_s1_0     = !clr_s1_0 && vld_s2_0;
+  assign clr_s1_0     = addrfin_s2_0 && vld_s2_0;
+  assign addrfin_s2_0 = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BEW)!=addr_s1_0);
+  assign basevld_s2_0 = (cntr_s2_0==0) && vld_s2_0;
+  assign vld_aws3_0   = addrfin_s3_0 && vld_s3_0;
+  assign addr_aws3_0  = base_s3_0;
+  assign len_aws3_0   = cntr_s3_0;
+  assign vld_ws3_0    = vld_s3_0;
+  assign data_ws3_0   = data_s3_0;
+  assign strb_ws3_0   = be_s3_0;
+  assign last_ws3_0   = addrfin_s3_0;
+  
+  // Pipeline.
+  powlib_flipflop #(.W(B_DW),        .EAR(EAR))    data_s0_s1_0_inst (.d(data_s0_1),   .q(data_s1_0),   .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_DW),        .EAR(EAR))    data_s1_s2_0_inst (.d(data_s1_0),   .q(data_s2_0),   .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_DW),        .EAR(EAR))    data_s2_s3_0_inst (.d(data_s2_0),   .q(data_s3_0),   .clk(clk),.rst(1'd0));  
+  powlib_flipflop #(.W(B_DW),        .EAR(EAR))      be_s0_s1_0_inst (.d(be_s0_0),     .q(be_s1_0),     .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_DW),        .EAR(EAR))      be_s1_s2_0_inst (.d(be_s1_0),     .q(be_s2_0),     .clk(clk),.rst(1'd0));  
+  powlib_flipflop #(.W(B_DW),        .EAR(EAR))      be_s2_s3_0_inst (.d(be_s2_0),     .q(be_s3_0),     .clk(clk),.rst(1'd0));  
+  powlib_flipflop #(.W(B_AW),        .EAR(EAR))    addr_s0_s1_0_inst (.d(addr_s0_0),   .q(addr_s1_0),   .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_AW),        .EAR(EAR))    addr_s1_s2_0_inst (.d(addr_s1_0),   .q(addr_s2_0),   .clk(clk),.rst(1'd0));  
+  powlib_flipflop #(.W(1),           .EAR(EAR))     vld_s0_s1_0_inst (.d(vld_s0_1),    .q(vld_s1_0),    .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),           .EAR(EAR))     vld_s1_s2_0_inst (.d(vld_s1_0),    .q(vld_s2_0),    .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),           .EAR(EAR))     vld_s2_s3_0_inst (.d(vld_s2_0),    .q(vld_s3_0),    .clk(clk),.rst(rst));  
+  powlib_flipflop #(.W(1),.EVLD(1),  .EAR(EAR))    base_s2_s3_0_inst (.d(addr_s2_0),   .q(base_s3_0),   .clk(clk),.rst(1'd0),.vld(basevld_s2_0));  
+  powlib_flipflop #(.W(CL2MAX_BURST),.EAR(EAR))    cntr_s2_s3_0_inst (.d(cntr_s2_0),   .q(cntr_s3_0),   .clk(clk),.rst(1'd0));  
+  powlib_flipflop #(.W(1),           .EAR(EAR)) addrfin_s2_s3_0_inst (.d(addrfin_s2_0),.q(addrfin_s3_0),.clk(clk),.rst(rst));
+  
+  // Counters
+  powlib_cntr #(.W(CL2MAX_BURST),EAR(EAR)) cntr_s1_s2_0_inst (
+    .cntr(cntr_s2_0),.adv(adv_s1_0),.clr(clr_s1_0),
+    .clk(clk),.rst(rst));
+
+  // FIFOs
+  powlib_swissfifo #(.W(B_BEW+B_AW+B_DW),.NFS(IN_NFS),.D(IN_D),.S(IN_S),
+    .ID({ID,"_INFIFO"}),.EDBG(EDBG)) 
+  fifo_in_s0_0_inst (
+    .wrdata(data_in_0),.wrvld(wrvld),.wrrdy(wrrdy),.wrnf(wrnf),
+    .rddata(data_s0_0),.rdvld(vld_s0_0),.rdrdy(rdy_s0_0),
+    .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
+    
+  powlib_swissfifo #(.W(`AXI_LENW+B_AW),.NFS(3),.D(8),
+    .ID({ID,"_AWFIFO"}),.EDBG(EDBG))
+  fifo_aws3_out_inst (
+    .wrdata(data_aws3_0),.wrvld(vld_aws3_0),.rdrdy(rdy_aws3_0),.wrnf(wrnf_aws3_0),
+    .rddata(data_awout_0),.rdvld(awvalid),.rdrdy(awready),
+    .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
+    
+  powlib_swissfifo #(.W(1+B_BEW+B_DW),.NFS(3),.D(MAX_BURST+8),
+    .ID({ID,"_WFIFO"}),.EDBG(EDBG))
+  fifo_ws3_out_inst (
+    .wrdata(data_ws3_1),.wrvld(vld_ws3_0),.rdrdy(rdy_ws3_0),.wrnf(wrnf_ws3_0),
+    .rddata(data_wout_0),.rdvld(wvalid),.rdrdy(wready),
+    .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));  
+  
+endmodule                        
 
 module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk,rst);
 
