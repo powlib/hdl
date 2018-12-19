@@ -148,6 +148,7 @@ module powlib_ipmaxi_wr(wraddr,wrdata,wrbe,wrvld,wrrdy,wrnf,
   localparam                    B_DW         = `POWLIB_BW*B_BPD;
   localparam                    B_BEW        = B_BPD;  
   localparam                    CL2MAX_BURST = powlib_clogb2(MAX_BURST);
+  localparam                    CL2B_BPD     = powlib_clogb2(B_BPD);
       
   input  wire                   clk;
   input  wire                   rst;
@@ -183,7 +184,7 @@ module powlib_ipmaxi_wr(wraddr,wrdata,wrbe,wrvld,wrrdy,wrnf,
   wire vld_s0_0, vld_s0_1, vld_s2_0, vld_s3_0, rdy_s0_0, adv_s1_0, clr_s1_0, basevld_s2_0, addrfin_s2_0, addrfin_s3_0, vld_aws3_0, rdy_aws3_0, wrnf_aws3_0, vld_ws3_0, rdy_ws3_0, wrnf_ws3_0, last_ws3_0;
      
   // Combinational Logic   
-  assign awsize                           = CL2MAX_BURST;
+  assign awsize                           = CL2B_BPD;
   assign awburst                          = `AXI_INCRBT;
   
   assign data_in_0[0+:B_DW]               = wrdata;
@@ -209,7 +210,7 @@ module powlib_ipmaxi_wr(wraddr,wrdata,wrbe,wrvld,wrrdy,wrnf,
   assign vld_s0_1                         = vld_s0_0 && rdy_s0_0;
   assign adv_s1_0                         = !clr_s1_0 && vld_s2_0;
   assign clr_s1_0                         = addrfin_s2_0 && vld_s2_0;
-  assign addrfin_s2_0                     = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BEW)!=addr_s1_0);
+  assign addrfin_s2_0                     = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BEW)!=addr_s1_0) || (!vld_s1_0);
   assign basevld_s2_0                     = (cntr_s2_0==0) && vld_s2_0;
   assign vld_aws3_0                       = addrfin_s3_0 && vld_s3_0;
   assign addr_aws3_0                      = base_s3_0;
@@ -236,7 +237,7 @@ module powlib_ipmaxi_wr(wraddr,wrdata,wrbe,wrvld,wrrdy,wrnf,
   powlib_flipflop #(.W(1),            .EAR(EAR)) addrfin_s2_s3_0_inst (.d(addrfin_s2_0),.q(addrfin_s3_0),.clk(clk),.rst(rst));
   
   // Counters
-  powlib_cntr #(.W(CL2MAX_BURST),.EAR(EAR)) cntr_s1_s2_0_inst (
+  powlib_cntr #(.W(CL2MAX_BURST),.EAR(EAR),.ELD(0)) cntr_s1_s2_0_inst (
     .cntr(cntr_s2_0),.adv(adv_s1_0),.clr(clr_s1_0),
     .clk(clk),.rst(rst));
 
