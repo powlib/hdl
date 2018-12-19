@@ -9,6 +9,6 @@
 `define AXI_SIZEW       3
 `define AXI_BURSTW      2
 `define AXI_RESPW       2
-`define AXI_INCRBT      2d1
+`define AXI_INCRBT      1
 
 `endif
