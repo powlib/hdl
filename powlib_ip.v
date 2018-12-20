@@ -137,6 +137,20 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
 `include "powlib_std.vh"
 `include "powlib_ip.vh" 
 
+  parameter                     MAX_BURST    = 256;
+  parameter                     ID           = "RD";  // String identifier  
+  parameter                     EAR          = 0;         // Enable asynchronous reset  
+  parameter                     EDBG         = 0;
+  parameter                     IN_NFS       = 0;
+  parameter                     IN_D         = 8;
+  parameter                     IN_S         = 0;  
+  parameter                     B_BPD        = 4;
+  parameter                     B_AW         = `POWLIB_BW*B_BPD;
+  localparam                    B_DW         = `POWLIB_BW*B_BPD;    
+  localparam                    B_BEW        = B_BPD;  
+  localparam                    CL2MAX_BURST = powlib_clogb2(MAX_BURST);
+  localparam                    CL2B_BPD     = powlib_clogb2(B_BPD);
+
   input  wire                   clk;
   input  wire                   rst;
   // PLB Writing 
@@ -164,6 +178,20 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
   input  wire                   rlast;
   input  wire                   rvalid;
   output wire                   rready;   
+  
+  wire [(B_AW+B_DW)-1:0] data_in_0, data_s0_0;
+  wire [(B_AW+`AXI_RESPW+B_DW)-1:0] data_rs1_0, data_out_0;
+  wire [(`AXI_LENW+B_AW)-1:0] data_ars3_0, data_arout_0;
+  wire [(1+B_AW)-1:0] data_s3_0, data_rs0_2;
+  wire [(1+`AXI_RESPW+B_DW)-1:0] data_rin_0, data_rs0_0;
+  wire [B_DW-1:0] data_s0_1, data_rs1_1, data_rs0_1;
+  wire [B_AW-1:0] addr_s0_0, addr_s1_0, addr_s2_0, raddr_rs1_0, addr_ars3_0, raddr_s1_0, raddr_s2_0, raddr_s3_0, raddr_rs0_0, base_s3_0;
+  wire [CL2MAX_BURST-1:0] cntr_s2_0, cntr_s3_0;
+  wire [`AXI_RESPW-1:0] resp_rs1_0, resp_rs0_0;
+  wire [`AXI_LENW-1:0] len_ars3_0;
+  wire last_rs0_0, explast_s3_0, explast_rs0_0, rdy_s0_0, rdy_rs0_0, rdy_rs0_1, nf_ars3_0, nf_s3_0, nf_rs1_0, vld_s0_0, vld_s0_1,
+  adv_s1_0, clr_s1_0, vld_s1_0, vld_s2_0, vld_s3_0, addrfin_s2_0, addrfin_s3_0, basevld_s2_0, vld_ars3_0, vld_rs0_2,
+  vld_rs0_0, vld_rs0_1;
   
   // Combinational Logic
   assign arsize                                = CL2B_BPD;
