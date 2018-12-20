@@ -129,7 +129,7 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
 endmodule
 
 module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
-                        rdaddr,rddata,rdvld,rdrdy,
+                        rdaddr,rddata,rdresp,rdvld,rdrdy,
                         araddr,arlen,arsize,arburst,arvalid,arready,
                         rdata,rresp,rlast,rvalid,rready,
                         clk,rst);
@@ -176,7 +176,7 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
   
   assign data_rs1_0[0+:B_DW]                   = data_rs1_1;
   assign data_rs1_0[(0+B_DW)+:`AXI_RESPW]      = resp_rs1_0;
-  assign data_rs1_0[(0+B_DW+`AXI_RESPW)+:B_AW] = addr_rs1_0;
+  assign data_rs1_0[(0+B_DW+`AXI_RESPW)+:B_AW] = raddr_rs1_0;
   assign rddata                                = data_out_0[0+:B_DW];
   assign rdresp                                = data_out_0[(0+B_DW)+:`AXI_RESPW];
   assign rdaddr                                = data_out_0[(0+B_DW+`AXI_RESPW)+:B_AW];
@@ -198,14 +198,43 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
   assign raddr_rs0_0                           = data_rs0_2[0+:B_AW];
   assign explast_rs0_0                         = data_rs0_2[(0+B_AW)+:1];
   
-  assign rdy_s0_0                              = ?;
-  assign vld_rs1_0                             = ?;
-  assign vld_ars3_0                            = ?;
-  assign vld_s3_1                              = ?;
-  assign rdy_rs0_0                             = ?;
-  assign rdy_rs0_1                             = ?;  
+  assign rdy_s0_0                              = !nf_ars3_0 && !nf_s3_0;  
+  assign vld_s0_1                              = vld_s0_0 && rdy_s0_0;  
+  assign adv_s1_0                              = !clr_s1_0 && vld_s2_0;
+  assign clr_s1_0                              = addrfin_s2_0 && vld_s2_0;  
+  assign addrfin_s2_0                          = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BEW)!=addr_s1_0) || (!vld_s1_0);
+  assign basevld_s2_0                          = (cntr_s2_0==0) && vld_s2_0;      
+  assign vld_ars3_0                            = addrfin_s3_0 && vld_s3_0;
+  assign addr_ars3_0                           = base_s3_0;
+  assign len_ars3_0                            = {{(`AXI_LENW-CL2MAX_BURST){1'd0}},cntr_s3_0};
+  assign explast_s3_0                          = addrfin_s3_0;
   
-  // Counters.
+  assign vld_rs0_2                             = vld_rs0_0 && vld_rs0_1 && !nf_rs1_0;
+  assign rdy_rs0_0                             = vld_rs0_2;
+  assign rdy_rs0_1                             = vld_rs0_2;  
+  
+  // Pipeline
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR))   raddr_s0_s1_0_inst (.d(data_s0_1[0+:B_AW]),.q(raddr_s1_0),  .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR))   raddr_s1_s2_0_inst (.d(raddr_s1_0),        .q(raddr_s2_0),  .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR))   raddr_s2_s3_0_inst (.d(raddr_s2_0),        .q(raddr_s3_0),  .clk(clk),.rst(1'd0));   
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR))    addr_s0_s1_0_inst (.d(addr_s0_0),         .q(addr_s1_0),   .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR))    addr_s1_s2_0_inst (.d(addr_s1_0),         .q(addr_s2_0),   .clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(B_AW),.EVLD(1),.EAR(EAR))    base_s2_s3_0_inst (.d(addr_s2_0),         .q(base_s3_0),   .clk(clk),.rst(1'd0),.vld(basevld_s2_0));    
+  powlib_flipflop #(.W(1),            .EAR(EAR))     vld_s0_s1_0_inst (.d(vld_s0_1),          .q(vld_s1_0),    .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),            .EAR(EAR))     vld_s1_s2_0_inst (.d(vld_s1_0),          .q(vld_s2_0),    .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),            .EAR(EAR))     vld_s2_s3_0_inst (.d(vld_s2_0),          .q(vld_s3_0),    .clk(clk),.rst(rst)); 
+  powlib_flipflop #(.W(CL2MAX_BURST), .EAR(EAR))    cntr_s2_s3_0_inst (.d(cntr_s2_0),         .q(cntr_s3_0),   .clk(clk),.rst(1'd0));  
+  powlib_flipflop #(.W(1),            .EAR(EAR)) addrfin_s2_s3_0_inst (.d(addrfin_s2_0),      .q(addrfin_s3_0),.clk(clk),.rst(1'd0));
+
+  powlib_flipflop #(.W(B_DW),         .EAR(EAR))  data_rs0_rs1_0_inst (.d(data_rs0_1),        .q(data_rs1_1),  .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR)) raddr_rs0_rs1_0_inst (.d(raddr_rs0_0),       .q(raddr_rs1_0), .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(`AXI_RESPW),   .EAR(EAR))  resp_rs0_rs1_0_inst (.d(resp_rs0_0),        .q(resp_rs1_0),  .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(1),            .EAR(EAR))   vld_rs0_rs1_0_inst (.d(vld_rs0_2),         .q(vld_rs1_0),   .clk(clk),.rst(rst));
+  
+  // Counters
+  powlib_cntr #(.W(CL2MAX_BURST),.EAR(EAR),.ELD(0)) cntr_s1_s2_0_inst (
+    .cntr(cntr_s2_0),.adv(adv_s1_0),.clr(clr_s1_0),
+    .clk(clk),.rst(rst));
   
   // FIFOs
   powlib_swissfifo #(.W(B_AW+B_DW),.NFS(IN_NFS),.D(IN_D),.S(IN_S),
@@ -239,8 +268,8 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
   powlib_swissfifo #(.W(1+B_AW),.NFS(3),.D(MAX_BURST+8),
     .ID({ID,"_RAFIFO"}),.EDBG(EDBG))
   fifo_s3_rs0_inst (
-    .wrdata(data_s3_0),.wrvld(vld_s3_1),.wrrdy(rdy_s3_1),.wrnf(nf_s3_1),
-    .rddata(data_rs0_2),.rdvld(vld_rs0_1),.rdrdy(rdy_rs0_1),
+    .wrdata(data_s3_0),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrnf(nf_s3_0), 
+    .rddata(data_rs0_2),.rdvld(vld_rs0_1),.rdrdy(rdy_rs0_1), 
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));      
                                                 
 endmodule                        
