@@ -375,7 +375,7 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
     
              wire    [WPTR-1:0] wrptr, rdptr, rdptrm1;      
              
-  assign                        wrrdy = wrptr!=rdptrm1;
+  assign                        wrrdy = (wrptr!=rdptrm1) && !rst;
              wire               wrinc = wrvld && wrrdy; 
              wire               wrclr = (wrptr==(D-1)) && wrinc;    
              
@@ -491,7 +491,7 @@ module powlib_afifo_wrcntrl(wrptr,graywrptr,grayrdptrm1,wrvld,wrrdy,wrinc,wrclk,
   input     wire         wrrst;
             wire [W-1:0] wrptr0;
             wire         wrinc0 = wrvld && wrrdy0;
-            wire         wrrdy0 = graywrptr!=grayrdptrm1;
+            wire         wrrdy0 = (graywrptr!=grayrdptrm1) && !wrrst;
   assign                 wrinc  = wrinc0;
   assign                 wrrdy  = wrrdy0;
   
