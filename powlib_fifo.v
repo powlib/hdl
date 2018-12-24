@@ -387,7 +387,7 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
              wire               amtop = wrinc || rdinc;      
              wire    [WPTR-1:0] amtdx = (wrinc!=0 && rdinc==0) ?  1 : 
                                         (wrinc==0 && rdinc!=0) ? -1 : 0;
-  assign                        wrnf  = (amtcurr>=NFT)   && rst;                     
+  assign                        wrnf  = (amtcurr>=NFT)   || rst;                     
   
   powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 wrcntr_inst  (.cntr(wrptr),.adv(wrinc),.clr(wrclr),.clk(clk),.rst(rst));
   powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 rdcntr_inst  (.cntr(rdptr),.adv(rdinc),.clr(rdclr),.clk(clk),.rst(rst));
