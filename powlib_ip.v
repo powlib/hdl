@@ -131,14 +131,16 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   input  wire                   rvalid;
   output wire                   rready;  
   
-  wire [B_AW-1:0] addr_s0_0, addr_s1_0, addr_s2_0, addr_s3_0;
-  wire [B_WW-1:0] data_s0_0;
-  wire [B_DW-1:0] data_s0_1, data_s1_0, data_s2_0, data_s3_0, data_out_0;
-  wire [B_RESPW-1:0] data_s3_1, data_out_1;
-  wire [`AXI_RESPW-1:0] resp_s2_1, resp_s2_0, resp_s2_2, resp_s3_0;
-  wire [B_OPW-1:0] op_s0_0, op_s1_0, op_s2_0, op_s3_0;
-  wire [B_BEW-1:0] be_s0_0, be_s1_0;
-  wire rdy_s0_0, rdy_s2_0, rdy_s2_1, nf_s1_0, nf_s1_1, nf_s3_0, nf_s3_1, vld_s0_0, vld_s0_1, vld_s1_0, vld_s1_1, vld_s2_0, vld_s2_1, vld_s1_2, vld_s2_3, vld_s2_2, vld_s2_4, vld_s2_5, vld_s3_1, last_s2_0;
+         wire [B_AW-1:0]        addr_s0_0, addr_s1_0, addr_s2_0, addr_s3_0;
+         wire [B_WW-1:0]        data_s0_0;
+         wire [B_DW-1:0]        data_s0_1, data_s1_0, data_s2_0, data_s3_0, data_out_0;
+         wire [B_RESPW-1:0]     data_s3_1, data_out_1;
+         wire [`AXI_RESPW-1:0]  resp_s2_1, resp_s2_0, resp_s2_2, resp_s3_0;
+         wire [B_OPW-1:0]       op_s0_0, op_s1_0, op_s2_0, op_s3_0;
+         wire [B_BEW-1:0]       be_s0_0, be_s1_0;
+         wire                   rdy_s0_0, rdy_s2_0, rdy_s2_1, nf_s1_0, nf_s1_1, nf_s3_0, nf_s3_1, 
+                                vld_s0_0, vld_s0_1, vld_s1_0, vld_s1_1, vld_s2_0, vld_s2_1, 
+                                vld_s1_2, vld_s2_3, vld_s2_2, vld_s2_4, vld_s2_5, vld_s3_1, last_s2_0;
   
   // Logic
   assign data_s3_1[0+:`AXI_RESPW]                 = resp_s3_0;
@@ -287,22 +289,22 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
   input  wire                   rvalid;
   output wire                   rready;   
   
-         wire [(B_AW+B_DW)-1:0]            data_in_0, data_s0_0;
+         wire [(B_AW+B_DW)-1:0]              data_in_0, data_s0_0;
          wire [(1+B_AW+`AXI_RESPW+B_DW)-1:0] data_rs1_0, data_out_0;
-         wire [(`AXI_LENW+B_AW)-1:0]       data_ars3_0, data_arout_0;
-         wire [(1+B_AW)-1:0]               data_s3_0, data_rs0_2;
-         wire [(1+`AXI_RESPW+B_DW)-1:0]    data_rin_0, data_rs0_0;
-         wire [B_DW-1:0]                   data_s0_1, data_rs1_1, data_rs0_1;
-         wire [B_AW-1:0]                   addr_s0_0, addr_s1_0, addr_s2_0, raddr_rs1_0, addr_ars3_0, 
-                                           raddr_s1_0, raddr_s2_0, raddr_s3_0, raddr_rs0_0, base_s3_0;
-         wire [CNTRW-1:0]                  cntr_s2_0, cntr_s3_0;
-         wire [`AXI_RESPW-1:0]             resp_rs1_0, resp_rs0_0;
-         wire [`AXI_LENW-1:0]              len_ars3_0;
-         wire                              last_rs0_0, explast_s3_0, explast_rs0_0, 
-                                           rdy_s0_0, rdy_rs0_0, rdy_rs0_1, nf_ars3_0, nf_s3_0, nf_rs1_0, 
-                                           vld_s0_0, vld_s0_1, vld_s1_0, vld_s2_0, vld_s3_0, adv_s1_0, clr_s1_0,  
-                                           addrfin_s2_0, addrfin_s3_0, basevld_s2_0, 
-                                           vld_ars3_0, vld_rs0_2, vld_rs0_0, vld_rs0_1;
+         wire [(`AXI_LENW+B_AW)-1:0]         data_ars3_0, data_arout_0;
+         wire [(1+B_AW)-1:0]                 data_s3_0, data_rs0_2;
+         wire [(1+`AXI_RESPW+B_DW)-1:0]      data_rin_0, data_rs0_0;
+         wire [B_DW-1:0]                     data_s0_1, data_rs1_1, data_rs0_1;
+         wire [B_AW-1:0]                     addr_s0_0, addr_s1_0, addr_s2_0, raddr_rs1_0, addr_ars3_0, 
+                                             raddr_s1_0, raddr_s2_0, raddr_s3_0, raddr_rs0_0, base_s3_0;
+         wire [CNTRW-1:0]                    cntr_s2_0, cntr_s3_0;
+         wire [`AXI_RESPW-1:0]               resp_rs1_0, resp_rs0_0;
+         wire [`AXI_LENW-1:0]                len_ars3_0;
+         wire                                last_rs0_0, explast_s3_0, explast_rs0_0, 
+                                             rdy_s0_0, rdy_rs0_0, rdy_rs0_1, nf_ars3_0, nf_s3_0, nf_rs1_0, 
+                                             vld_s0_0, vld_s0_1, vld_s1_0, vld_s2_0, vld_s3_0, adv_s1_0, clr_s1_0,  
+                                             addrfin_s2_0, addrfin_s3_0, basevld_s2_0, 
+                                             vld_ars3_0, vld_rs0_2, vld_rs0_0, vld_rs0_1;
   
   // Combinational Logic
   assign arsize                                  = CL2B_BPD;
