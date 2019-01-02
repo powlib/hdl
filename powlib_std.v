@@ -32,10 +32,10 @@ module powlib_flipflop(d,q,clk,rst,vld);
   end else begin
     always @(posedge clk or posedge rst) begin
       if (rst==1) begin
-      q <= INIT;
-    end else if (vld0==1) begin
-      q <= d;
-    end    
+        q <= INIT;
+      end else if (vld0==1) begin
+        q <= d;
+      end    
     end  
   end
 
@@ -125,6 +125,30 @@ module powlib_pipe(d,q,clk,rst,vld);
     powlib_ffsync #(.W(W),.INIT(INIT),.EAR(EAR),.EVLD(EVLD),.S(S-1)) ffs (.d(d),.q(q),.aclk(clk),.bclk(clk),.arst(rst),.brst(rst),.vld(vld));
   end
   
+endmodule
+
+module powlib_flag(q,set,clr,clk,rst);
+
+  /* --------------------------------- 
+   * Flag register.    
+   * --------------------------------- */ 
+
+  parameter      INIT = 0;    // Initial value
+  parameter      EAR  = 0;    // Enable asynchronous reset 
+  output    wire q;           // Output data  
+  input     wire set;         // Sets the output q
+  input     wire clr;         // Clears the output q 
+  input     wire clk;         // Clock
+  input     wire rst;         // Reset
+  
+  powlib_flipflop #(.W(1),.INIT(INIT),.EAR(EAR),.EVLD(1)) flag_inst (
+    .d((clr) ? 1'd0 :
+       (set) ? 1'd1 : 1'dz),
+    .q(q),
+    .clk(clk),
+    .rst(rst),
+    .vld(clr||set));
+    
 endmodule
 
 module powlib_cntr(cntr,nval,adv,ld,dx,clr,clk,rst);

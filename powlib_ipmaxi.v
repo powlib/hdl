@@ -216,7 +216,7 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
   input  wire                   wrvld;
   output wire                   wrrdy;
   output wire                   wrnf;  
-  // PBL Reading
+  // PLB Reading
   output wire [B_AW-1:0]        rdaddr;
   output wire [B_DW-1:0]        rddata;
   output wire [`AXI_RESPW-1:0]  rdresp;

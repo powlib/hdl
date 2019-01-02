@@ -10,5 +10,7 @@
 `define AXI_BURSTW      2
 `define AXI_RESPW       2
 `define AXI_INCRBT      1
+`define AXI_OKAYRT      0
+`define AXI_SLVERRRT    2
 
 `endif
