@@ -4,6 +4,23 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
                         wdata,wstrb,wlast,wvalid,wready,
                         bresp,bid,bvalid,bready,
                         rdaddr,rddata,rdbe,rdvld,rdrdy);
+                        
+`include "powlib_std.vh"
+`include "powlib_ip.vh" 
+                        
+  parameter                     ID        = "WR";  // String identifier  
+  parameter                     EAR       = 0;         // Enable asynchronous reset  
+  parameter                     EDBG      = 0;
+  parameter                     IDW       = 1;
+  parameter                     WR_D      = 8;
+  parameter                     WR_S      = 0;
+  parameter                     B_BPD     = 4;
+  parameter                     B_AW      = `POWLIB_BW*B_BPD;
+  localparam                    B_DW      = `POWLIB_BW*B_BPD;
+  localparam                    B_BEW     = B_BPD;
+  localparam                    B_OPW     = `POWLIB_OPW;
+  localparam                    B_WW      = B_OPW+B_BEW+B_DW; 
+  localparam                    CNTRW     = `AXI_LENW;
 
   // AXI Address Writing
   input  wire [IDW-1:0]         awid;
@@ -34,6 +51,7 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   wire [(IDW+B_AW+`AXI_LENW+`AXI_SIZEW+`AXI_BURSTW)-1:0] data_awin_0, data_aws0_0;
   wire [(B_DW+B_BEW+1)-1:0]                              data_win_0, data_ws0_0;
   wire [(`AXI_RESPW+IDW)-1:0]                            data_bs3_0, data_bsout_0;
+  wire [(B_AW+B_DW+B_BEW)-1:0]                           data_s3_1, data_rdout_0;
   wire [`AXI_BURSTW-1:0]                                 burst_aws0_0, burst_aws1_0;
   wire [`AXI_SIZEW-1:0]                                  size_aws0_0, size_aws1_0;
   wire [`AXI_LENW-1:0]                                   len_aws0_0, len_aws1_0;
@@ -45,6 +63,7 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   wire [B_DW-1:0]                                        data_ws0_1, data_s1_0, data_s2_0, data_s3_0;
   wire [CNTRW-1:0]                                       cntr_s1_0;
   reg  [B_AW-1:0]                                        shift_s1_0 [0:(1<<`AXI_SIZEW)-1];
+  integer                                                i; 
   
   // Logic.
   assign data_awin_0[0+:`AXI_BURSTW]                                 = awburst;
@@ -93,9 +112,9 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   always @(*) begin
     if (vld_aws1_0) begin
       addr_s1_0 <= addr_aws1_0;
-    end else
+    end else begin
       addr_s1_0 <= addr_s2_0+shift_s1_0[size_aws1_0];
-    begin
+    end
   end
   
   initial begin
@@ -146,13 +165,13 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
   
   powlib_swissfifo #(
-    .W(B_DW+B_BEW+1),.D(MAX_BURST+8),.EAR(EAR),.ID({ID,"_WFIFO"}),.EDBG(EDBG)) 
+    .W(B_DW+B_BEW+1),.D(8),.EAR(EAR),.ID({ID,"_WFIFO"}),.EDBG(EDBG)) 
    fifo_win_ws0_0_inst (
     .wrdata(data_win_0),.wrvld(wvalid),.wrrdy(wready),.rddata(data_ws0_0),.rdvld(vld_ws0_0),.rdrdy(rdy_ws0_0),
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
     
   powlib_swissfifo #(
-    .W(B_AW+B_DW+B_BEW),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG))
+    .W(B_AW+B_DW+B_BEW),.NFS(3),.D(8+WR_D),.S(WR_S),.EAR(EAR),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG))
   fifo_s3_rdout_0_inst (
     .wrdata(data_s3_1),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrnf(nf_s3_0),
     .rddata(data_rdout_0),.rdvld(rdvld),.rdrdy(rdrdy),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));

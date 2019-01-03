@@ -91,10 +91,10 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
                                 vld_s1_2, vld_s2_3, vld_s2_2, vld_s2_4, vld_s2_5, vld_s3_1, last_s2_0;
   
   // Logic
-  assign data_s3_1[0+:`AXI_RESPW]                 = resp_s3_0;
+  assign data_s3_1[0+:`AXI_RESPW]               = resp_s3_0;
   assign data_s3_1[(0+`AXI_RESPW)+:`POWLIB_OPW] = op_s3_0;
-  assign respresp                                 = data_out_1[0+:`AXI_RESPW];
-  assign respop                                   = data_out_1[(0+`AXI_RESPW)+:`POWLIB_OPW];
+  assign respresp                               = data_out_1[0+:`AXI_RESPW];
+  assign respop                                 = data_out_1[(0+`AXI_RESPW)+:`POWLIB_OPW];
   
   assign rdy_s0_0  = !nf_s1_0 && !nf_s1_1;
   assign vld_s0_1  = vld_s0_0 && rdy_s0_0;
