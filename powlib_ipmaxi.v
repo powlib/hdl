@@ -129,7 +129,7 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   // Main components
   powlib_ipmaxi_wr #(
     .MAX_BURST(MAX_BURST),.ID({ID,"_WR"}),.EAR(EAR),.EDBG(EDBG),
-    .IN_NFS(1),.IN_D(4),.B_BPD(B_BPD),.B_AW(B_AW)) 
+    .IN_NFS(1),.IN_D(8),.B_BPD(B_BPD),.B_AW(B_AW)) 
   wr_inst (
     .wraddr(addr_s1_0),.wrdata(data_s1_0),.wrbe(be_s1_0),.wrvld(vld_s1_0),.wrrdy(rdy_s1_0),.wrnf(nf_s1_0),
     .awaddr(awaddr),.awlen(awlen),.awsize(awsize),.awburst(awburst),.awvalid(awvalid),.awready(awready),
@@ -137,7 +137,7 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
 
   powlib_ipmaxi_rd #(
     .MAX_BURST(MAX_BURST),.ID({ID,"_RD"}),.EAR(EAR),.EDBG(EDBG),
-    .IN_NFS(1),.IN_D(4),.B_BPD(B_BPD),.B_AW(B_AW))
+    .IN_NFS(1),.IN_D(8),.B_BPD(B_BPD),.B_AW(B_AW))
   rd_inst (
     .wraddr(addr_s1_0),.wrdata(data_s1_0),.wrvld(vld_s1_1),.wrrdy(rdy_s1_1),.wrnf(nf_s1_1),
     .rdaddr(addr_s2_0),.rddata(data_s2_0),.rdresp(resp_s2_0),.rdlast(last_s2_0),.rdvld(vld_s2_0),.rdrdy(rdy_s2_0),
@@ -154,7 +154,7 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
     
   powlib_busfifo #(
-    .NFS(1),.D(4),.EAR(EAR),
+    .NFS(1),.D(8),.EAR(EAR),
     .ID({ID,"_OUTFIFO"}),.EDBG(EDBG),.B_AW(B_AW),.B_DW(B_DW)) 
   fifo_s3_out_0_inst (
     .wrdata(data_s3_0),.wraddr(addr_s3_0),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrnf(nf_s3_0),
@@ -162,14 +162,14 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));   
 
   powlib_swissfifo #(
-    .W(`AXI_RESPW),.D(4),.EAR(EAR),.ID({ID,"_BRESPFIFO"}),.EDBG(EDBG)) 
+    .W(`AXI_RESPW),.D(8),.EAR(EAR),.ID({ID,"_BRESPFIFO"}),.EDBG(EDBG)) 
   fifo_in_s2_1_inst (
     .wrdata(bresp),.wrvld(bvalid),.wrrdy(bready),
     .rddata(resp_s2_1),.rdvld(vld_s2_1),.rdrdy(rdy_s2_1),
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst)); 
 
   powlib_swissfifo #(
-    .W(B_RESPW),.D(4),.EAR(EAR),.ID({ID,"_RESPOUTFIFO"}),.EDBG(EDBG)) 
+    .W(B_RESPW),.D(8),.EAR(EAR),.ID({ID,"_RESPOUTFIFO"}),.EDBG(EDBG)) 
   fifo_s3_out_1_inst (
     .wrdata(data_s3_1),.wrvld(vld_s3_1),.wrrdy(rdy_s3_1),.wrnf(nf_s3_1),
     .rddata(data_out_1),.rdvld(respvld),.rdrdy(resprdy),

@@ -3,7 +3,8 @@
 module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
                         wdata,wstrb,wlast,wvalid,wready,
                         bresp,bid,bvalid,bready,
-                        rdaddr,rddata,rdbe,rdvld,rdrdy);
+                        rdaddr,rddata,rdbe,rdvld,rdrdy,
+                        clk,rst);
                         
 `include "powlib_std.vh"
 `include "powlib_ip.vh" 
@@ -22,6 +23,8 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   localparam                    B_WW      = B_OPW+B_BEW+B_DW; 
   localparam                    CNTRW     = `AXI_LENW;
 
+  input  wire                   clk;
+  input  wire                   rst;
   // AXI Address Writing
   input  wire [IDW-1:0]         awid;
   input  wire [B_AW-1:0]        awaddr;
@@ -52,7 +55,7 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   wire [(B_DW+B_BEW+1)-1:0]                              data_win_0, data_ws0_0;
   wire [(`AXI_RESPW+IDW)-1:0]                            data_bs3_0, data_bsout_0;
   wire [(B_AW+B_DW+B_BEW)-1:0]                           data_s3_1, data_rdout_0;
-  wire [`AXI_BURSTW-1:0]                                 burst_aws0_0, burst_aws1_0;
+  wire [`AXI_BURSTW-1:0]                                 burst_aws0_0, burst_aws1_0, burst_aws2_0;
   wire [`AXI_SIZEW-1:0]                                  size_aws0_0, size_aws1_0;
   wire [`AXI_LENW-1:0]                                   len_aws0_0, len_aws1_0;
   wire [`AXI_RESPW-1:0]                                  resp_bs2_0, resp_bs3_0;
@@ -107,7 +110,7 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   assign addrfin_s1_0  = (cntr_s1_0==len_aws1_0) && vld_s1_0;
   assign transfin_s1_1 = transfin_s1_0 || addrfin_s1_0;
   assign vld_bs1_0     = addrfin_s1_0;
-  assign resp_bs2_0    = ((vld_bs2_0!=last_s2_0)||(burst_aws1_0!=`AXI_INCRBT))? `AXI_SLVERRRT : `AXI_SLVERRRT;
+  assign resp_bs2_0    = ((vld_bs2_0!=last_s2_0)||(burst_aws2_0!=`AXI_INCRBT))? `AXI_SLVERRRT : `AXI_OKAYRT;
   
   always @(*) begin
     if (vld_aws1_0) begin
@@ -126,7 +129,8 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   // Pipeline
   powlib_flag #(.INIT(1'd1),.EAR(EAR)) transfin_s0_s1_0_inst (.q(transfin_s1_0),.set(transset_s0_0),.clr(transclr_s0_0),.clk(clk),.rst(rst));
 
-  powlib_flipflop #(.W(`AXI_BURSTW),.EVLD(1),.EAR(EAR)) burst_aws0_aws1_0_inst (.d(burst_aws0_0),.q(burst_aws1_0),.clk(clk),.rst(1'd0),.vld(vld_aws0_1));  
+  powlib_flipflop #(.W(`AXI_BURSTW),.EVLD(1),.EAR(EAR)) burst_aws0_aws1_0_inst (.d(burst_aws0_0),.q(burst_aws1_0),.clk(clk),.rst(1'd0),.vld(vld_aws0_1)); 
+  powlib_flipflop #(.W(`AXI_BURSTW),         .EAR(EAR)) burst_aws1_aws2_0_inst (.d(burst_aws1_0),.q(burst_aws2_0),.clk(clk),.rst(1'd0));
   powlib_flipflop #(.W(`AXI_SIZEW), .EVLD(1),.EAR(EAR))  size_aws0_aws1_0_inst (.d(size_aws0_0), .q(size_aws1_0), .clk(clk),.rst(1'd0),.vld(vld_aws0_1));  
   powlib_flipflop #(.W(`AXI_LENW),  .EVLD(1),.EAR(EAR))   len_aws0_aws1_0_inst (.d(len_aws0_0),  .q(len_aws1_0),  .clk(clk),.rst(1'd0),.vld(vld_aws0_1)); 
   powlib_flipflop #(.W(B_AW),       .EVLD(1),.EAR(EAR))  addr_aws0_aws1_0_inst (.d(addr_aws0_0), .q(addr_aws1_0), .clk(clk),.rst(1'd0),.vld(vld_aws0_1));
