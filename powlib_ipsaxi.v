@@ -3,10 +3,26 @@
 module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
                         rid,rdata,rresp,rlast,rvalid,rready,
                         rdaddr,rddata,rdvld,rdrdy,
-                        wraddr,wrdata,wrvld,wrrdy,wrnf,clk,rst);
+                        wrdata,wrvld,wrrdy,wrnf,clk,rst);
 
 `include "powlib_std.vh"
 `include "powlib_ip.vh" 
+
+  /* ------------------------------------------- 
+   * WARNING
+   * There's actually a huge fundamental problem
+   * that will need to be addressed in the future.
+   * Currently, the architecture is designed such 
+   * that this core sends out read requests through
+   * the powlib Bus (PLB) Reading Interface, and 
+   * expects the data to arrive IN ORDER through the
+   * PLB Reading Interface. However, if the IN ORDER
+   * condition is not kept--considering the interconnect 
+   * cannot guarantee ordered transactions accross the 
+   * memory boundaries of different IP--this core will
+   * will return the incorrectly ordered data across
+   * its Slave AXI Interface.
+   * ------------------------------------------- */
 
   parameter                     ID        = "RD";  // String identifier  
   parameter                     EAR       = 0;         // Enable asynchronous reset  
@@ -39,19 +55,90 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   output wire                   rlast;
   output wire                   rvalid;
   input  wire                   rready;  
-  // PLB Reading
+  // PLB Reading -- Used for making read requests.
   output wire [B_AW-1:0]        rdaddr;
   output wire [B_DW-1:0]        rddata;
   output wire                   rdvld;
   input  wire                   rdrdy;
-  // PLB Writing 
-  input  wire [B_AW-1:0]        wraddr;
+  // PLB Writing -- Used for receiving the responses (i.e. the data) from the read requests.
   input  wire [B_DW-1:0]        wrdata;
   input  wire                   wrvld;
   output wire                   wrrdy;
   output wire                   wrnf;  
   
+  // Logic.
+  assign data_arin_0[0+:`AXI_BURSTW]                                 = arburst;
+  assign data_arin_0[(0+`AXI_BURSTW)+:`AXI_SIZEW]                    = arsize;
+  assign data_arin_0[(0+`AXI_BURSTW+`AXI_SIZEW)+:`AXI_LENW]          = arlen;
+  assign data_arin_0[(0+`AXI_BURSTW+`AXI_SIZEW+`AXI_LENW)+:B_AW]     = araddr;
+  assign data_arin_0[(0+`AXI_BURSTW+`AXI_SIZEW+`AXI_LENW+B_AW)+:IDW] = arid;
+  assign burst_ars0_0 = data_ars0_0[0+:`AXI_BURSTW];
+  assign size_ars0_0  = data_ars0_0[(0+`AXI_BURSTW)+:`AXI_SIZEW];
+  assign len_ars0_0   = data_ars0_0[(0+`AXI_BURSTW+`AXI_SIZEW)+:`AXI_LENW];
+  assign addr_ars0_0  = data_ars0_0[(0+`AXI_BURSTW+`AXI_SIZEW+`AXI_LENW)+:B_AW];
+  assign id_ars0_0    = data_ars0_0[(0+`AXI_BURSTW+`AXI_SIZEW+`AXI_LENW+B_AW)+:IDW];
+  
+  assign data_outs3_1[0+:B_DW]        = data_outs3_0;
+  assign data_outs3_1[(0+B_DW)+:B_AW] = addr_outs3_0;
+  assign rdaddr = data_rdout_0[0+:B_DW];
+  assign rddata = data_rdout_0[(0+B_DW)+:B_AW];
+  
+  assign data_cntrls3_1[0+:1]                  = last_cntrls3_0;
+  assign data_cntrls3_1[(0+1)+:`AXI_RESPW]     = resp_cntrls3_0;
+  assign data_cntrls3_1[(0+1+`AXI_RESPW)+:IDW] = id_cntrls3_0;
+  assign last_cntrlz0_0[0+:1]                  = data_cntrlz0_1;
+  assign resp_cntrlz0_0[(0+1+`AXI_RESPW)+:IDW] = data_cntrlz0_1;
+  assign id_cntrlz0_0[(0+1+`AXI_RESPW)+:IDW]   = data_cntrlz0_1;
+  
+  assign data_z3_1[0+:1]                       = last_z3_0;
+  assign data_z3_1[(0+1)+:`AXI_RESPW]          = resp_z3_0;
+  assign data_z3_1[(0+1+`AXI_RESPW)+:B_DW]     = data_z3_0;
+  assign data_z3_1[(0+1+`AXI_RESPW+B_DW)+:IDW] = id_z3_0;
+  assign rlast = data_rout_0[0+:1];
+  assign rresp = data_rout_0[(0+1)+:`AXI_RESPW];
+  assign rdata = data_rout_0[(0+1+`AXI_RESPW)+:B_DW];
+  assign rid   = data_rout_0[(0+1+`AXI_RESPW+B_DW)+:IDW];
+  
+  assign rdy_ars0_0 = !nf_outs3_0 && !nf_cntrls3_0 && ?;
+  assign vld_ars0_1 = vld_ars0_0 && rdy_ars0_0;
+  
+  assign rdy_cntrlz0_0 = !nf_z3_0 && vld_z0_0;
+  assign vld_cntrlz0_1 = vld_cntrlz0_0 && rdy_cntrlz0_0;
+  assign rdy_z0_0      = !nf_z3_0 && vld_cntrlz0_0;
+  assign vld_z0_1      = vld_z0_0 && rdy_z0_0;
+  
   // FIFOs.
+  powlib_swissfifo #(
+    .W(IDW+B_AW+`AXI_LENW+`AXI_SIZEW+`AXI_BURSTW),.D(8),.EAR(EAR),.ID({ID,"_ARFIFO"}),.EDBG(EDBG)) 
+  fifo_arin_ars0_0_inst (
+    .wrdata(data_arin_0),.wrvld(arvalid),.wrrdy(arready),.rddata(data_ars0_0),.rdvld(vld_ars0_0),.rdrdy(rdy_ars0_0),
+    .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
+    
+  powlib_swissfifo #(
+    .W(B_AW+B_DW),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG))
+  fifo_outs3_rdout_0_inst (
+    .wrdata(data_outs3_1),.wrvld(vld_outs3_0),.wrrdy(rdy_outs3_0),.wrnf(nf_outs3_0),
+    .rddata(data_rdout_0),.rdvld(rdvld),.rdrdy(rdrdy),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
+    
+  powlib_swissfifo #(
+    .W(IDW+`AXI_RESPW+1),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_CNTRLFIFO"}),.EDBG(EDBG))
+  fifo_cntrls3_cntrlz0_0_inst (
+    .wrdata(data_cntrls3_1),.wrvld(vld_cntrls3_0),.wrrdy(rdy_cntrls3_0),.wrnf(nf_cntrls3_0),
+    .rddata(data_cntrlz0_1),.rdvld(vld_cntrlz0_0),.rdrdy(rdy_cntrlz0_0),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
+    
+  powlib_swissfifo #(
+    .W(B_DW),.NFS(IN_NFS),.D(IN_D),.EAR(EAR),.ID({ID,"_INFIFO"}),.EDBG(EDBG))
+  fifo_wrin_z0_0_inst (
+    .wrdata(wrdata),.wrvld(wrvld),.wrrdy(wrrdy),.wrnf(wrnf),
+    .rddata(data_z0_0),.rdvld(vld_z0_0),.rdrdy(rdy_z0_0),
+    .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
+    
+  powlib_swissfifo #(
+    .W(IDW+B_DW+`AXI_RESPW+1),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_RFIFO"}),.EDBG(EDBG))
+  fifo_z1_rout_0_inst (
+    .wrdata(data_z3_1),.wrvld(vld_z3_0),.wrrdy(rdy_z3_0),.wrnf(nf_z3_0),
+    .rddata(data_rout_0),.rdvld(rvalid),.rdrdy(rready),
+    .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
 
 endmodule
 
@@ -99,7 +186,7 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   output wire [IDW-1:0]         bid;
   output wire                   bvalid;
   input  wire                   bready;
-  // PLB Reading
+  // PLB Reading -- Used for writing out the data.
   output wire [B_AW-1:0]        rdaddr;
   output wire [B_DW-1:0]        rddata;
   output wire [B_BEW-1:0]       rdbe;
@@ -218,19 +305,19 @@ module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
   
   // FIFOs.
   powlib_swissfifo #(
-    .W(IDW+B_AW+`AXI_LENW+`AXI_SIZEW+`AXI_BURSTW),.EAR(EAR),.ID({ID,"_AWFIFO"}),.EDBG(EDBG)) 
+    .W(IDW+B_AW+`AXI_LENW+`AXI_SIZEW+`AXI_BURSTW),.D(8),.EAR(EAR),.ID({ID,"_AWFIFO"}),.EDBG(EDBG)) 
   fifo_awin_aws0_0_inst (
     .wrdata(data_awin_0),.wrvld(awvalid),.wrrdy(awready),.rddata(data_aws0_0),.rdvld(vld_aws0_0),.rdrdy(rdy_aws0_0),
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
   
   powlib_swissfifo #(
-    .W(B_DW+B_BEW+1),.D(8),.EAR(EAR),.ID({ID,"_WFIFO"}),.EDBG(EDBG)) 
+    .W(B_DW+B_BEW+1),.D(8+WR_D),.S(WR_S),.EAR(EAR),.ID({ID,"_WFIFO"}),.EDBG(EDBG)) 
    fifo_win_ws0_0_inst (
     .wrdata(data_win_0),.wrvld(wvalid),.wrrdy(wready),.rddata(data_ws0_0),.rdvld(vld_ws0_0),.rdrdy(rdy_ws0_0),
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
     
   powlib_swissfifo #(
-    .W(B_AW+B_DW+B_BEW),.NFS(3),.D(8+WR_D),.S(WR_S),.EAR(EAR),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG))
+    .W(B_AW+B_DW+B_BEW),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG))
   fifo_s3_rdout_0_inst (
     .wrdata(data_s3_1),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrnf(nf_s3_0),
     .rddata(data_rdout_0),.rdvld(rdvld),.rdrdy(rdrdy),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
