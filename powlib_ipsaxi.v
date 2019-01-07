@@ -1,5 +1,60 @@
 `timescale 1ns / 1ps
 
+module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
+                        rid,rdata,rresp,rlast,rvalid,rready,
+                        rdaddr,rddata,rdvld,rdrdy,
+                        wraddr,wrdata,wrvld,wrrdy,wrnf,clk,rst);
+
+`include "powlib_std.vh"
+`include "powlib_ip.vh" 
+
+  parameter                     ID        = "RD";  // String identifier  
+  parameter                     EAR       = 0;         // Enable asynchronous reset  
+  parameter                     EDBG      = 0;
+  parameter                     IDW       = 1;
+  parameter                     WR_D      = 8;
+  parameter                     WR_S      = 0;
+  parameter                     B_BPD     = 4;
+  parameter                     B_AW      = `POWLIB_BW*B_BPD;
+  localparam                    B_DW      = `POWLIB_BW*B_BPD;
+  localparam                    B_BEW     = B_BPD;
+  localparam                    B_OPW     = `POWLIB_OPW;
+  localparam                    B_WW      = B_OPW+B_BEW+B_DW; 
+  localparam                    CNTRW     = `AXI_LENW;
+
+  input  wire                   clk;
+  input  wire                   rst;
+  // AXI Address Reading
+  input  wire [IDW-1:0]         arid;
+  input  wire [B_AW-1:0]        araddr;
+  input  wire [`AXI_LENW-1:0]   arlen;
+  input  wire [`AXI_SIZEW-1:0]  arsize;
+  input  wire [`AXI_BURSTW-1:0] arburst;
+  input  wire                   arvalid;
+  output wire                   arready; 
+  // AXI Reading Data
+  output wire [IDW-1:0]         rid;
+  output wire [B_DW-1:0]        rdata;
+  output wire [`AXI_RESPW-1:0]  rresp;
+  output wire                   rlast;
+  output wire                   rvalid;
+  input  wire                   rready;  
+  // PLB Reading
+  output wire [B_AW-1:0]        rdaddr;
+  output wire [B_DW-1:0]        rddata;
+  output wire                   rdvld;
+  input  wire                   rdrdy;
+  // PLB Writing 
+  input  wire [B_AW-1:0]        wraddr;
+  input  wire [B_DW-1:0]        wrdata;
+  input  wire                   wrvld;
+  output wire                   wrrdy;
+  output wire                   wrnf;  
+  
+  // FIFOs.
+
+endmodule
+
 module powlib_ipsaxi_wr(awid,awaddr,awlen,awsize,awburst,awvalid,awready,
                         wdata,wstrb,wlast,wvalid,wready,
                         bresp,bid,bvalid,bready,
