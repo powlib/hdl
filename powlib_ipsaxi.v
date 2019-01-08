@@ -99,13 +99,40 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   assign rdata = data_rout_0[(0+1+`AXI_RESPW)+:B_DW];
   assign rid   = data_rout_0[(0+1+`AXI_RESPW+B_DW)+:IDW];
   
-  assign rdy_ars0_0 = !nf_outs3_0 && !nf_cntrls3_0 && ?;
-  assign vld_ars0_1 = vld_ars0_0 && rdy_ars0_0;
+  assign transset_s0_0 = addrfin_s1_0 && !vld_ars0_1;
+  assign transclr_s0_0 = vld_ars0_1;
+  assign rdy_ars0_0    = !nf_outs3_0 && !nf_cntrls3_0 && transfin_s1_1;
+  assign vld_ars0_1    = vld_ars0_0 && rdy_ars0_0;
+  assign clr_s0_0      = vld_ars0_1;
+  assign adv_s0_0      = !clr_s0_0 && vld_s1_0;
+  assign addrfin_s1_0  = (cntr_s1_0==len_ars1_0) && vld_s1_0;
+  assign transfin_s1_1 = transfin_s1_0 || addrfin_s1_0;
   
   assign rdy_cntrlz0_0 = !nf_z3_0 && vld_z0_0;
   assign vld_cntrlz0_1 = vld_cntrlz0_0 && rdy_cntrlz0_0;
   assign rdy_z0_0      = !nf_z3_0 && vld_cntrlz0_0;
   assign vld_z0_1      = vld_z0_0 && rdy_z0_0;
+  
+  always @(*) begin
+    if (vld_ars1_0) begin
+      addr_s1_0 <= addr_ars1_0;
+    end else begin
+      addr_s1_0 <= addr_s2_0+shift_s1_0[size_ars1_0];
+    end
+  end
+  
+  initial begin
+    for (i=0; i<(1<<`AXI_SIZEW); i=i+1) begin
+      shift_s1_0[i] <= (1<<i);
+    end
+  end
+  
+  // Pipeline
+  powlib_flag #(.INIT(1'd1),.EAR(EAR)) transfin_s0_s1_0_inst (.q(transfin_s1_0),.set(transset_s0_0),.clr(transclr_s0_0),.clk(clk),.rst(rst));
+  
+  // Counter
+  powlib_cntr #(.W(CNTRW),.EAR(EAR),.ELD(0)) cntr_s0_s1_0_inst (
+    .cntr(cntr_s1_0),.adv(adv_s0_0),.clr(clr_s0_0),.clk(clk),.rst(rst));
   
   // FIFOs.
   powlib_swissfifo #(
