@@ -2,7 +2,7 @@
 
 module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
                         rid,rdata,rresp,rlast,rvalid,rready,
-                        rdaddr,rddata,rdvld,rdrdy,
+                        rdaddr,rdvld,rdrdy,
                         wrdata,wrvld,wrrdy,wrnf,clk,rst);
 
 `include "powlib_std.vh"
@@ -57,7 +57,6 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   input  wire                   rready;  
   // PLB Reading -- Used for making read requests.
   output wire [B_AW-1:0]        rdaddr;
-  output wire [B_DW-1:0]        rddata;
   output wire                   rdvld;
   input  wire                   rdrdy;
   // PLB Writing -- Used for receiving the responses (i.e. the data) from the read requests.
@@ -76,19 +75,14 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   assign size_ars0_0  = data_ars0_0[(0+`AXI_BURSTW)+:`AXI_SIZEW];
   assign len_ars0_0   = data_ars0_0[(0+`AXI_BURSTW+`AXI_SIZEW)+:`AXI_LENW];
   assign addr_ars0_0  = data_ars0_0[(0+`AXI_BURSTW+`AXI_SIZEW+`AXI_LENW)+:B_AW];
-  assign id_ars0_0    = data_ars0_0[(0+`AXI_BURSTW+`AXI_SIZEW+`AXI_LENW+B_AW)+:IDW];
-  
-  assign data_outs3_1[0+:B_DW]        = data_outs3_0;
-  assign data_outs3_1[(0+B_DW)+:B_AW] = addr_outs3_0;
-  assign rdaddr = data_rdout_0[0+:B_DW];
-  assign rddata = data_rdout_0[(0+B_DW)+:B_AW];
+  assign id_ars0_0    = data_ars0_0[(0+`AXI_BURSTW+`AXI_SIZEW+`AXI_LENW+B_AW)+:IDW];  
   
   assign data_cntrls3_1[0+:1]                  = last_cntrls3_0;
   assign data_cntrls3_1[(0+1)+:`AXI_RESPW]     = resp_cntrls3_0;
   assign data_cntrls3_1[(0+1+`AXI_RESPW)+:IDW] = id_cntrls3_0;
-  assign last_cntrlz0_0[0+:1]                  = data_cntrlz0_1;
-  assign resp_cntrlz0_0[(0+1+`AXI_RESPW)+:IDW] = data_cntrlz0_1;
-  assign id_cntrlz0_0[(0+1+`AXI_RESPW)+:IDW]   = data_cntrlz0_1;
+  assign last_cntrlz0_0[0+:1]                = data_cntrlz0_1;
+  assign resp_cntrlz0_0[(0+1)+:`AXI_RESPW]   = data_cntrlz0_1;
+  assign id_cntrlz0_0[(0+1+`AXI_RESPW)+:IDW] = data_cntrlz0_1;
   
   assign data_z3_1[0+:1]                       = last_z3_0;
   assign data_z3_1[(0+1)+:`AXI_RESPW]          = resp_z3_0;
@@ -99,14 +93,17 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   assign rdata = data_rout_0[(0+1+`AXI_RESPW)+:B_DW];
   assign rid   = data_rout_0[(0+1+`AXI_RESPW+B_DW)+:IDW];
   
-  assign transset_s0_0 = addrfin_s1_0 && !vld_ars0_1;
-  assign transclr_s0_0 = vld_ars0_1;
-  assign rdy_ars0_0    = !nf_outs3_0 && !nf_cntrls3_0 && transfin_s1_1;
-  assign vld_ars0_1    = vld_ars0_0 && rdy_ars0_0;
-  assign clr_s0_0      = vld_ars0_1;
-  assign adv_s0_0      = !clr_s0_0 && vld_s1_0;
-  assign addrfin_s1_0  = (cntr_s1_0==len_ars1_0) && vld_s1_0;
-  assign transfin_s1_1 = transfin_s1_0 || addrfin_s1_0;
+  assign transset_s0_0  = addrfin_s1_0 && !vld_ars0_1;
+  assign transclr_s0_0  = vld_ars0_1;
+  assign rdy_ars0_0     = !nf_s3_0 && !nf_cntrls3_0 && transfin_s1_1;
+  assign vld_ars0_1     = vld_ars0_0 && rdy_ars0_0;
+  assign clr_s0_0       = vld_ars0_1;
+  assign adv_s0_0       = !clr_s0_0 && vld_s1_0;
+  assign addrfin_s1_0   = (cntr_s1_0==len_ars1_0) && vld_s1_0;
+  assign transfin_s1_1  = transfin_s1_0 || addrfin_s1_0;
+  assign vld_s1_0       = !nf_s3_0 && !nf_cntrls3_0 && !transfin_s1_0;
+  assign last_cntrls1_0 = addrfin_s1_0;
+  assign resp_cntrls2_0 = ((burst_ars2_0!=`AXI_INCRBT) || (shift_s2_0>B_BPD))? `AXI_SLVERRRT : `AXI_OKAYRT;
   
   assign rdy_cntrlz0_0 = !nf_z3_0 && vld_z0_0;
   assign vld_cntrlz0_1 = vld_cntrlz0_0 && rdy_cntrlz0_0;
@@ -130,6 +127,43 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   // Pipeline
   powlib_flag #(.INIT(1'd1),.EAR(EAR)) transfin_s0_s1_0_inst (.q(transfin_s1_0),.set(transset_s0_0),.clr(transclr_s0_0),.clk(clk),.rst(rst));
   
+  powlib_flipflop #(.W(`AXI_BURSTW),.EVLD(1),.EAR(EAR)) burst_ars0_ars1_0_inst (.d(burst_ars0_0),.q(burst_ars1_0),.clk(clk),.rst(1'd0),.vld(vld_ars0_1)); 
+  powlib_flipflop #(.W(`AXI_BURSTW),         .EAR(EAR)) burst_ars1_ars2_0_inst (.d(burst_ars1_0),.q(burst_ars2_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(`AXI_SIZEW), .EVLD(1),.EAR(EAR))  size_ars0_ars1_0_inst (.d(size_ars0_0), .q(size_ars1_0), .clk(clk),.rst(1'd0),.vld(vld_ars0_1));  
+  powlib_flipflop #(.W(`AXI_LENW),  .EVLD(1),.EAR(EAR))   len_ars0_ars1_0_inst (.d(len_ars0_0),  .q(len_ars1_0),  .clk(clk),.rst(1'd0),.vld(vld_ars0_1)); 
+  powlib_flipflop #(.W(B_AW),       .EVLD(1),.EAR(EAR))  addr_ars0_ars1_0_inst (.d(addr_ars0_0), .q(addr_ars1_0), .clk(clk),.rst(1'd0),.vld(vld_ars0_1));
+  powlib_flipflop #(.W(IDW),        .EVLD(1),.EAR(EAR))    id_ars0_ars1_0_inst (.d(id_ars0_0),   .q(id_ars1_0),   .clk(clk),.rst(1'd0),.vld(vld_ars0_1));
+  powlib_flipflop #(.W(1),                   .EAR(EAR))   vld_ars0_ars1_0_inst (.d(vld_ars0_1),  .q(vld_ars1_0),  .clk(clk),.rst(rst));  
+  
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR)) shift_s1_s2_0_inst (.d(shift_s1_0[size_ars1_0]),.q(shift_s2_0),.clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(B_AW),.EVLD(1),.EAR(EAR))  addr_s1_s2_0_inst (.d(addr_s1_0),              .q(addr_s2_0), .clk(clk),.rst(1'd0),.vld(vld_s1_0));
+  powlib_flipflop #(.W(B_AW),         .EAR(EAR))  addr_s2_s3_0_inst (.d(addr_s2_0),              .q(addr_s3_0), .clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(1),            .EAR(EAR))   vld_s1_s2_0_inst (.d(vld_s1_0),               .q(vld_s2_0),  .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),            .EAR(EAR))   vld_s2_s3_0_inst (.d(vld_s2_0),               .q(vld_s3_0),  .clk(clk),.rst(rst));
+  
+  powlib_flipflop #(.W(1),         .EAR(EAR)) last_cntrls1_cntrls2_0_inst (.d(last_cntrls1_0),.q(last_cntrls2_0),.clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(1),         .EAR(EAR)) last_cntrls2_cntrls3_0_inst (.d(last_cntrls2_0),.q(last_cntrls3_0),.clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(`AXI_RESPW),.EAR(EAR)) resp_cntrls2_cntrls3_0_inst (.d(resp_cntrls2_0),.q(resp_cntrls3_0),.clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(IDW),       .EAR(EAR))      id_ars1_cntrls2_0_inst (.d(id_ars1_0),     .q(id_cntrls2_0),  .clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(1),         .EAR(EAR))       vld_s1_cntrls2_0_inst (.d(vld_s1_0),      .q(vld_cntrls2_0), .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),         .EAR(EAR))  vld_cntrls2_cntrls3_0_inst (.d(vld_cntrls2_0), .q(vld_cntrls3_0), .clk(clk),.rst(rst));  
+  
+  powlib_flipflop #(.W(1),         .EAR(EAR)) last_cntrlz0_z1_0_inst (.d(last_cntrlz0_0),.q(last_z1_0),.clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(1),         .EAR(EAR))      last_z1_z2_0_inst (.d(last_z1_0),     .q(last_z2_0),.clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(1),         .EAR(EAR))      last_z2_z3_0_inst (.d(last_z2_0),     .q(last_z3_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(`AXI_RESPW),.EAR(EAR)) resp_cntrlz0_z1_0_inst (.d(resp_cntrlz0_0),.q(resp_z1_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(`AXI_RESPW),.EAR(EAR))      resp_z1_z2_0_inst (.d(resp_z1_0),     .q(resp_z2_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(`AXI_RESPW),.EAR(EAR))      resp_z2_z3_0_inst (.d(resp_z2_0),     .q(resp_z3_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_DW),      .EAR(EAR))      data_z0_z1_0_inst (.d(data_z0_0),     .q(data_z1_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_DW),      .EAR(EAR))      data_z1_z2_0_inst (.d(data_z1_0),     .q(data_z2_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(B_DW),      .EAR(EAR))      data_z2_z3_0_inst (.d(data_z2_0),     .q(data_z3_0),.clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(IDW),       .EAR(EAR))   id_cntrlz0_z1_0_inst (.d(id_cntrlz0_0),  .q(id_z1_0),  .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(IDW),       .EAR(EAR))        id_z1_z2_0_inst (.d(id_z1_0),       .q(id_z2_0),  .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(IDW),       .EAR(EAR))        id_z2_z3_0_inst (.d(id_z2_0),       .q(id_z3_0),  .clk(clk),.rst(1'd0));
+  powlib_flipflop #(.W(1),         .EAR(EAR))       vld_z0_z1_0_inst (.d(vld_z0_1),      .q(vld_z1_0), .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),         .EAR(EAR))       vld_z1_z2_0_inst (.d(vld_z1_0),      .q(vld_z2_0), .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),         .EAR(EAR))       vld_z2_z3_0_inst (.d(vld_z2_0),      .q(vld_z3_0), .clk(clk),.rst(rst));
+  
   // Counter
   powlib_cntr #(.W(CNTRW),.EAR(EAR),.ELD(0)) cntr_s0_s1_0_inst (
     .cntr(cntr_s1_0),.adv(adv_s0_0),.clr(clr_s0_0),.clk(clk),.rst(rst));
@@ -142,10 +176,10 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
     
   powlib_swissfifo #(
-    .W(B_AW+B_DW),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG))
-  fifo_outs3_rdout_0_inst (
-    .wrdata(data_outs3_1),.wrvld(vld_outs3_0),.wrrdy(rdy_outs3_0),.wrnf(nf_outs3_0),
-    .rddata(data_rdout_0),.rdvld(rdvld),.rdrdy(rdrdy),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
+    .W(B_AW),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_OUTFIFO"}),.EDBG(EDBG))
+  fifo_s3_rdout_0_inst (
+    .wrdata(addr_s3_0),.wrvld(vld_s3_0),.wrrdy(rdy_s3_0),.wrnf(nf_s3_0),
+    .rddata(rdaddr),.rdvld(rdvld),.rdrdy(rdrdy),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
     
   powlib_swissfifo #(
     .W(IDW+`AXI_RESPW+1),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_CNTRLFIFO"}),.EDBG(EDBG))
