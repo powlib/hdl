@@ -285,7 +285,7 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
   assign vld_s0_1                                = vld_s0_0 && rdy_s0_0;  
   assign adv_s1_0                                = !clr_s1_0 && vld_s2_0;
   assign clr_s1_0                                = addrfin_s2_0 && vld_s2_0;  
-  assign addrfin_s2_0                            = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BEW)!=addr_s1_0) || (!vld_s1_0);
+  assign addrfin_s2_0                            = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BPD)!=addr_s1_0) || (!vld_s1_0);
   assign basevld_s2_0                            = (cntr_s2_0==0) && vld_s2_0;      
   assign vld_ars3_0                              = addrfin_s3_0 && vld_s3_0;
   assign addr_ars3_0                             = base_s3_0;
@@ -369,6 +369,15 @@ module powlib_ipmaxi_rd(wraddr,wrdata,wrvld,wrrdy,wrnf,
       $finish;
     end
   end
+  
+  always @(posedge clk) begin
+    if (vld_s0_1) begin
+      if (((addr_s0_0/B_BPD)*B_BPD)!=addr_s0_0) begin
+        $display("ID: %s, addr_s0_0: %x, B_BPD: %d, addr_s0_0 is not a multiple of B_BPD.", ID, addr_s0_0, B_BPD);
+        $finish;      
+      end
+    end
+  end  
             
 endmodule                        
 
@@ -454,7 +463,7 @@ module powlib_ipmaxi_wr(wraddr,wrdata,wrbe,wrvld,wrrdy,wrnf,
   assign vld_s0_1                         = vld_s0_0 && rdy_s0_0;
   assign adv_s1_0                         = !clr_s1_0 && vld_s2_0;
   assign clr_s1_0                         = addrfin_s2_0 && vld_s2_0;
-  assign addrfin_s2_0                     = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BEW)!=addr_s1_0) || (!vld_s1_0);
+  assign addrfin_s2_0                     = (cntr_s2_0==(MAX_BURST-1)) || ((addr_s2_0+B_BPD)!=addr_s1_0) || (!vld_s1_0);
   assign basevld_s2_0                     = (cntr_s2_0==0) && vld_s2_0;
   assign vld_aws3_0                       = addrfin_s3_0 && vld_s3_0;
   assign addr_aws3_0                      = base_s3_0;
@@ -511,6 +520,15 @@ module powlib_ipmaxi_wr(wraddr,wrdata,wrbe,wrvld,wrrdy,wrnf,
       if ((1<<CL2MAX_BURST)!=MAX_BURST) begin
         $display("ID: %s, MAX_BURST: %d, MAX_BURST is not a power of 2.", ID, MAX_BURST);
         $finish;
+    end
+  end
+  
+  always @(posedge clk) begin
+    if (vld_s0_1) begin
+      if (((addr_s0_0/B_BPD)*B_BPD)!=addr_s0_0) begin
+        $display("ID: %s, addr_s0_0: %x, B_BPD: %d, addr_s0_0 is not a multiple of B_BPD.", ID, addr_s0_0, B_BPD);
+        $finish;      
+      end
     end
   end
   
