@@ -169,7 +169,7 @@ module powlib_ipmaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst)); 
 
   powlib_swissfifo #(
-    .W(B_RESPW),.D(8),.EAR(EAR),.ID({ID,"_RESPOUTFIFO"}),.EDBG(EDBG)) 
+    .W(B_RESPW),.NFS(1),.D(8),.EAR(EAR),.ID({ID,"_RESPOUTFIFO"}),.EDBG(EDBG)) 
   fifo_s3_out_1_inst (
     .wrdata(data_s3_1),.wrvld(vld_s3_1),.wrrdy(rdy_s3_1),.wrnf(nf_s3_1),
     .rddata(data_out_1),.rdvld(respvld),.rdrdy(resprdy),

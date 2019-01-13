@@ -28,8 +28,8 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   parameter                     EAR       = 0;         // Enable asynchronous reset  
   parameter                     EDBG      = 0;
   parameter                     IDW       = 1;
-  parameter                     WR_D      = 8;
-  parameter                     WR_S      = 0;
+  parameter                     IN_D      = 8;
+  parameter                     IN_NFS    = 0;
   parameter                     B_BPD     = 4;
   parameter                     B_AW      = `POWLIB_BW*B_BPD;
   localparam                    B_DW      = `POWLIB_BW*B_BPD;
@@ -65,6 +65,21 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   output wire                   wrrdy;
   output wire                   wrnf;  
   
+  wire [(IDW+B_AW+`AXI_LENW+`AXI_SIZEW+`AXI_BURSTW)-1:0] data_arin_0, data_ars0_0;
+  wire [(IDW+`AXI_RESPW+1)-1:0] data_cntrls3_1, data_cntrlz0_1;
+  wire [(IDW+B_DW+`AXI_RESPW+1)-1:0] data_z3_1, data_rout_0;
+  wire [`AXI_BURSTW-1:0] burst_ars0_0, burst_ars1_0, burst_ars2_0;
+  wire [`AXI_SIZEW-1:0] size_ars0_0, size_ars1_0;
+  wire [`AXI_LENW-1:0] len_ars0_0, len_ars1_0;
+  wire [B_AW-1:0] shift_s2_0, addr_ars0_0, addr_ars1_0, addr_s2_0, addr_s3_0;
+  reg  [B_AW-1:0] addr_s1_0;
+  reg  [B_AW-1:0] shift_s1_0 [0:(1<<`AXI_SIZEW)-1];
+  wire [IDW-1:0] id_ars0_0, id_ars1_0, id_cntrls2_0, id_cntrls3_0, id_cntrlz0_0, id_z1_0, id_z2_0, id_z3_0;
+  wire [`AXI_RESPW-1:0] resp_cntrls2_0, resp_cntrls3_0, resp_cntrlz0_0, resp_z1_0, resp_z2_0, resp_z3_0;
+  wire [B_DW-1:0] data_z0_0, data_z1_0, data_z2_0, data_z3_0;
+  wire [CNTRW-1:0] cntr_s1_0;
+  integer i;
+  
   // Logic.
   assign data_arin_0[0+:`AXI_BURSTW]                                 = arburst;
   assign data_arin_0[(0+`AXI_BURSTW)+:`AXI_SIZEW]                    = arsize;
@@ -80,9 +95,9 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   assign data_cntrls3_1[0+:1]                  = last_cntrls3_0;
   assign data_cntrls3_1[(0+1)+:`AXI_RESPW]     = resp_cntrls3_0;
   assign data_cntrls3_1[(0+1+`AXI_RESPW)+:IDW] = id_cntrls3_0;
-  assign last_cntrlz0_0[0+:1]                = data_cntrlz0_1;
-  assign resp_cntrlz0_0[(0+1)+:`AXI_RESPW]   = data_cntrlz0_1;
-  assign id_cntrlz0_0[(0+1+`AXI_RESPW)+:IDW] = data_cntrlz0_1;
+  assign last_cntrlz0_0 = data_cntrlz0_1[0+:1];
+  assign resp_cntrlz0_0 = data_cntrlz0_1[(0+1)+:`AXI_RESPW];
+  assign id_cntrlz0_0   = data_cntrlz0_1[(0+1+`AXI_RESPW)+:IDW];
   
   assign data_z3_1[0+:1]                       = last_z3_0;
   assign data_z3_1[(0+1)+:`AXI_RESPW]          = resp_z3_0;
@@ -145,6 +160,7 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
   powlib_flipflop #(.W(1),         .EAR(EAR)) last_cntrls2_cntrls3_0_inst (.d(last_cntrls2_0),.q(last_cntrls3_0),.clk(clk),.rst(1'd0)); 
   powlib_flipflop #(.W(`AXI_RESPW),.EAR(EAR)) resp_cntrls2_cntrls3_0_inst (.d(resp_cntrls2_0),.q(resp_cntrls3_0),.clk(clk),.rst(1'd0)); 
   powlib_flipflop #(.W(IDW),       .EAR(EAR))      id_ars1_cntrls2_0_inst (.d(id_ars1_0),     .q(id_cntrls2_0),  .clk(clk),.rst(1'd0)); 
+  powlib_flipflop #(.W(IDW),       .EAR(EAR))   id_cntrls2_cntrls3_0_inst (.d(id_cntrls2_0),  .q(id_cntrls3_0),  .clk(clk),.rst(1'd0));
   powlib_flipflop #(.W(1),         .EAR(EAR))       vld_s1_cntrls2_0_inst (.d(vld_s1_0),      .q(vld_cntrls2_0), .clk(clk),.rst(rst));
   powlib_flipflop #(.W(1),         .EAR(EAR))  vld_cntrls2_cntrls3_0_inst (.d(vld_cntrls2_0), .q(vld_cntrls3_0), .clk(clk),.rst(rst));  
   
