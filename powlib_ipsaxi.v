@@ -1,11 +1,11 @@
 `timescale 1ns / 1ps
 
 module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
-                     awaddr,awlen,awsize,awburst,awvalid,awready,
+                     awid,awaddr,awlen,awsize,awburst,awvalid,awready,
                      wdata,wstrb,wlast,wvalid,wready,
-                     bresp,bvalid,bready,
-                     araddr,arlen,arsize,arburst,arvalid,arready,
-                     rdata,rresp,rlast,rvalid,rready,
+                     bresp,bid,bvalid,bready,
+                     arid,araddr,arlen,arsize,arburst,arvalid,arready,
+                     rid,rdata,rresp,rlast,rvalid,rready,
                      clk,rst);
                      
   parameter                     ID        = "IPSAXI";  // String identifier  
@@ -48,38 +48,38 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   /* MASTER AXI INTERFACE */
   // Address Writing
   input  wire [IDW-1:0]         awid;
-  output wire [B_AW-1:0]        awaddr;
-  output wire [`AXI_LENW-1:0]   awlen;
-  output wire [`AXI_SIZEW-1:0]  awsize;
-  output wire [`AXI_BURSTW-1:0] awburst;
-  output wire                   awvalid;
-  input  wire                   awready;
+  input  wire [B_AW-1:0]        awaddr;
+  input  wire [`AXI_LENW-1:0]   awlen;
+  input  wire [`AXI_SIZEW-1:0]  awsize;
+  input  wire [`AXI_BURSTW-1:0] awburst;
+  input  wire                   awvalid;
+  output wire                   awready;
   // Writing Data 
-  output wire [B_DW-1:0]        wdata;
-  output wire [B_BEW-1:0]       wstrb;
-  output wire                   wlast;
-  output wire                   wvalid;
-  input  wire                   wready;
+  input  wire [B_DW-1:0]        wdata;
+  input  wire [B_BEW-1:0]       wstrb;
+  input  wire                   wlast;
+  input  wire                   wvalid;
+  output wire                   wready;
   // Writing Response
-  input  wire [`AXI_RESPW-1:0]  bresp;
+  output wire [`AXI_RESPW-1:0]  bresp;
   output wire [IDW-1:0]         bid;
-  input  wire                   bvalid;
-  output wire                   bready;
+  output wire                   bvalid;
+  input  wire                   bready;
   // Address Reading 
   input  wire [IDW-1:0]         arid;
-  output wire [B_AW-1:0]        araddr;
-  output wire [`AXI_LENW-1:0]   arlen;
-  output wire [`AXI_SIZEW-1:0]  arsize;
-  output wire [`AXI_BURSTW-1:0] arburst;
-  output wire                   arvalid;
-  input  wire                   arready;
+  input  wire [B_AW-1:0]        araddr;
+  input  wire [`AXI_LENW-1:0]   arlen;
+  input  wire [`AXI_SIZEW-1:0]  arsize;
+  input  wire [`AXI_BURSTW-1:0] arburst;
+  input  wire                   arvalid;
+  output wire                   arready;
   // Reading Data
   output wire [IDW-1:0]         rid;
-  input  wire [B_DW-1:0]        rdata;
-  input  wire [`AXI_RESPW-1:0]  rresp;
-  input  wire                   rlast;
-  input  wire                   rvalid;
-  output wire                   rready;
+  output wire [B_DW-1:0]        rdata;
+  output wire [`AXI_RESPW-1:0]  rresp;
+  output wire                   rlast;
+  output wire                   rvalid;
+  input  wire                   rready;
   
   wire [B_WW-1:0]  data_s0_0, data_z1_0;
   wire [B_AW-1:0]  addr_z0_0, addr_z1_0;
