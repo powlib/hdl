@@ -82,7 +82,7 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   input  wire                   rready;
   
   wire [B_WW-1:0]  data_s0_0, data_z1_0;
-  wire [B_AW-1:0]  addr_z0_0, addr_z1_0;
+  wire [B_AW-1:0]  addr_wz0_0, addr_rz0_0, addr_z0_0, addr_z1_0, addr_s0_0;
   wire [B_DW-1:0]  data_z0_0, data_wz0_0, data_z1_1, data_s0_1, data_s1_0;
   wire [B_BEW-1:0] be_z0_0, be_wz0_0, be_z1_0, be_s0_0;
   wire [B_OPW-1:0] op_z0_0, op_z1_0, op_s0_0;
@@ -98,7 +98,7 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   assign op_z0_0   = (rdy_rz0_0) ? `POWLIB_OP_READ : `POWLIB_OP_WRITE;
   
   assign rdy_s0_0  = !nf_s1_0;
-  assign vld_s1_1  = vld_s0_0 && rdy_s0_0;
+  assign vld_s0_1  = vld_s0_0 && rdy_s0_0;
 
   powlib_ipunpackintr0 #(.B_BPD(B_BPD))             unpack_s0_0_inst (.wrdata(data_s0_0),.rddata(data_s0_1),.rdbe(be_s0_0),.rdop(op_s0_0));
   powlib_ippackintr0   #(.B_BPD(B_BPD))               pack_z1_0_inst (.wrdata(data_z1_1),.wrbe(be_z1_0),.wrop(op_z1_0),.rddata(data_z1_0));  
@@ -109,16 +109,17 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
   powlib_flipflop #(.W(B_BEW),.EAR(EAR))   be_z0_z1_0_inst (.d(be_z0_0),  .q(be_z1_0),  .clk(clk),.rst(1'd0));
   powlib_flipflop #(.W(B_OPW),.EAR(EAR))   op_z0_z1_0_inst (.d(op_z0_0),  .q(op_z1_0),  .clk(clk),.rst(1'd0));
   
-  powlib_flipflop #(.W(1),    .EAR(EAR))  vld_s0_s1_0_inst (.d(vld_s1_1), .q(vld_s1_0), .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(1),    .EAR(EAR))  vld_s0_s1_0_inst (.d(vld_s0_1), .q(vld_s1_0), .clk(clk),.rst(rst));
   powlib_flipflop #(.W(B_DW), .EAR(EAR)) data_s0_s1_0_inst (.d(data_s0_1),.q(data_s1_0),.clk(clk),.rst(1'd0));  
   
   powlib_ipsaxi_rd #(
     .ID({ID,"_RD"}),.EAR(EAR),.EDBG(EDBG),.IDW(IDW),.IN_D(8),.IN_NFS(1),.RD_D(RD_D),.RD_S(RD_S),.B_BPD(B_BPD),.B_AW(B_AW))
   rd_inst (
-    .arid(arid),.araddr(araddr),.arlen(arlen),.arsize(arsize),.arvalid(arvalid),.arready(arready),
+    .arid(arid),.araddr(araddr),.arlen(arlen),.arsize(arsize),.arburst(arburst),.arvalid(arvalid),.arready(arready),
     .rid(rid),.rdata(rdata),.rresp(rresp),.rlast(rlast),.rvalid(rvalid),.rready(rready),
     .rdaddr(addr_rz0_0),.rdvld(vld_rz0_0),.rdrdy(rdy_rz0_0),
-    .wrdata(data_s1_0),.wrvld(vld_s1_0),.wrrdy(rdy_s1_0),.wrnf(nf_s1_0));
+    .wrdata(data_s1_0),.wrvld(vld_s1_0),.wrrdy(rdy_s1_0),.wrnf(nf_s1_0),
+    .clk(clk),.rst(rst));
     
   powlib_ipsaxi_wr #(
     .ID({ID,"_WR"}),.EAR(EAR),.EDBG(EDBG),.IDW(IDW),.WR_D(WR_D),.WR_S(WR_S),.B_BPD(B_BPD),.B_AW(B_AW))
@@ -126,7 +127,8 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
     .awid(awid),.awaddr(awaddr),.awlen(awlen),.awsize(awsize),.awburst(awburst),.awvalid(awvalid),.awready(awready),
     .wdata(wdata),.wstrb(wstrb),.wlast(wlast),.wvalid(wvalid),.wready(wready),
     .bresp(bresp),.bid(bid),.bvalid(bvalid),.bready(bready),
-    .rdaddr(addr_wz0_0),.rddata(data_wz0_0),.rdbe(be_wz0_0),.rdvld(vld_wz0_0),.rdrdy(rdy_wz0_0));    
+    .rdaddr(addr_wz0_0),.rddata(data_wz0_0),.rdbe(be_wz0_0),.rdvld(vld_wz0_0),.rdrdy(rdy_wz0_0),
+    .clk(clk),.rst(rst));    
 
   powlib_busfifo #(
     .NFS(IN_NFS),.D(IN_D),.S(IN_S),.EAR(EAR),
@@ -138,7 +140,7 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
         
   powlib_busfifo #(
     .NFS(1),.D(8),.EAR(EAR),
-    .ID({ID,"_OUTFIFO"}),.EDBG(EDBG),.B_AW(B_AW),.B_DW(B_DW)) 
+    .ID({ID,"_OUTFIFO"}),.EDBG(EDBG),.B_AW(B_AW),.B_DW(B_WW)) 
   fifo_z1_rdout_0_inst (
     .wrdata(data_z1_0),.wraddr(addr_z1_0),.wrvld(vld_z1_0),.wrrdy(rdy_z1_0),.wrnf(nf_z1_0),
     .rddata(rddata),.rdaddr(rdaddr),.rdvld(rdvld),.rdrdy(rdrdy),
@@ -347,7 +349,7 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
     .rddata(rdaddr),.rdvld(rdvld),.rdrdy(rdrdy),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
     
   powlib_swissfifo #(
-    .W(IDW+`AXI_RESPW+1),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_CNTRLFIFO"}),.EDBG(EDBG))
+    .W(IDW+`AXI_RESPW+1),.NFS(3),.D(8+RD_D),.S(RD_S),.EAR(EAR),.ID({ID,"_CNTRLFIFO"}),.EDBG(EDBG))
   fifo_cntrls3_cntrlz0_0_inst (
     .wrdata(data_cntrls3_1),.wrvld(vld_cntrls3_0),.wrrdy(rdy_cntrls3_0),.wrnf(nf_cntrls3_0),
     .rddata(data_cntrlz0_1),.rdvld(vld_cntrlz0_0),.rdrdy(rdy_cntrlz0_0),.wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
@@ -360,7 +362,7 @@ module powlib_ipsaxi_rd(arid,araddr,arlen,arsize,arburst,arvalid,arready,
     .wrclk(clk),.wrrst(rst),.rdclk(clk),.rdrst(rst));
     
   powlib_swissfifo #(
-    .W(IDW+B_DW+`AXI_RESPW+1),.NFS(3),.D(8+RD_D),.S(RD_S),.EAR(EAR),.ID({ID,"_RFIFO"}),.EDBG(EDBG))
+    .W(IDW+B_DW+`AXI_RESPW+1),.NFS(3),.D(8),.EAR(EAR),.ID({ID,"_RFIFO"}),.EDBG(EDBG))
   fifo_z1_rout_0_inst (
     .wrdata(data_z3_1),.wrvld(vld_z3_0),.wrrdy(rdy_z3_0),.wrnf(nf_z3_0),
     .rddata(data_rout_0),.rdvld(rvalid),.rdrdy(rready),
