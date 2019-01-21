@@ -242,15 +242,21 @@ module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,clk);
 
   /* --------------------------------- 
    * Dual-port ram.  
+   * It should be noted the ERRD parameter must be
+   * set in order to infer block RAMs instead of
+   * distributed RAMs in an Xilinx design. Plus,
+   * the D and W need to be sufficiently large
+   * enough, as well. This was tested in Vivado 2017.4
    * --------------------------------- */
 
 `include "powlib_std.vh"
 
-  parameter                    W    = 16;               // Width
-  parameter                    D    = 8;                // Depth
+  parameter                    W    = 32;               // Width
+  parameter                    D    = 128;              // Depth
   parameter         [W*D-1:0]  INIT = 0;                // Initializes the memory
   parameter                    WIDX = powlib_clogb2(D); // Width of index
   parameter                    EWBE = 0;                // Enable write bit enable
+  parameter                    ERRD = 0;                // Enable registered output.
   parameter                    EDBG = 0;                // Enable debug statements
   parameter                    ID   = "DPRAM";          // String identifier
   input     wire    [WIDX-1:0] wridx;                   // Write index 
@@ -262,9 +268,15 @@ module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,clk);
   input     wire               clk;                     // Clock
             reg     [W-1:0]    mem[D-1:0];              // Array (i.e. should be inferred as block ram)
             integer            i;      
-   
-  always @(*) begin
-    rddata <= mem[rdidx];
+  
+  if (ERRD!=0) begin
+    always @(posedge clk) begin
+      rddata <= mem[rdidx];
+    end
+  end else begin
+    always @(*) begin
+      rddata <= mem[rdidx];
+    end
   end
     
   initial begin
