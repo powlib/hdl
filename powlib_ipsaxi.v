@@ -8,6 +8,9 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
                      rid,rdata,rresp,rlast,rvalid,rready,
                      clk,rst);
                      
+`include "powlib_std.vh"
+`include "powlib_ip.vh"                      
+                     
   parameter                     ID        = "IPSAXI";  // String identifier  
   parameter                     EAR       = 0;     // Enable asynchronous reset  
   parameter                     EDBG      = 0;
