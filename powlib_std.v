@@ -238,7 +238,7 @@ module powlib_graydecodeff(d,q,clk,rst,vld);
   
 endmodule
 
-module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,clk,wrclk,rdclk);
+module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,rdrdy,clk,wrclk,rdclk);
 
   /* --------------------------------- 
    * Dual-port ram.  
@@ -256,6 +256,7 @@ module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,clk,wrclk,rdclk);
   parameter         [W*D-1:0]  INIT   = 0;                // Initializes the memory
   parameter                    WIDX   = powlib_clogb2(D); // Width of index
   parameter                    EWBE   = 0;                // Enable write bit enable
+  parameter                    ERDRDY = 0;                // Enable read ready.
   parameter                    ERRD   = 0;                // Enable registered output.
   parameter                    EASYNC = 0;                // Enable asynchronous mode.
   parameter                    EDBG   = 0;                // Enable debug statements
@@ -266,11 +267,13 @@ module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,clk,wrclk,rdclk);
   input     wire    [W-1:0]    wrbe;                      // Write bit enable
   input     wire    [WIDX-1:0] rdidx;                     // Read index
   output    reg     [W-1:0]    rddata;                    // Read data
+  input     wire               rdrdy;                     // Read data ready
   input     wire               clk;                       // Clock (for synchronous mode)
   input     wire               wrclk;                     // Write Clock (for asynchronous mode)
   input     wire               rdclk;                     // Read Clock (for asynchronous mode)
             wire               wrclk0, rdclk0;
             reg     [W-1:0]    mem[D-1:0];                // Array (i.e. should be inferred as block ram)
+            reg                rdrdy0;
             integer            i; 
 
   /* 
@@ -280,10 +283,16 @@ module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,clk,wrclk,rdclk);
    */
   assign wrclk0 = (EASYNC!=0) ? wrclk : clk; 
   assign rdclk0 = (EASYNC!=0) ? rdclk : clk;
+              
+  always @(*) begin
+    rdrdy0 <= rdrdy==1 || ERDRDY==0;
+  end    
     
   if (ERRD!=0) begin
     always @(posedge rdclk0) begin
-      rddata <= mem[rdidx];
+      if (rdrdy0==1) begin
+        rddata <= mem[rdidx];
+      end
     end
   end else begin
     always @(*) begin
