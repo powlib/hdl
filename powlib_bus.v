@@ -132,6 +132,8 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rd
 
   for (i=0; i<B_WRS; i=i+1) begin
 
+    localparam [powlib_itoaw(i)-1:0] IDX_STR = powlib_itoa(i);
+    
     wire [B_DW-1:0] data_in_0;
     wire [B_AW-1:0] addr_in_0;
     wire [B_DW-1:0] data_s0_0;
@@ -158,7 +160,7 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rd
     
     powlib_busfifo #(
       .D(D),.S(S),.EASYNC(B_EASYNCS[i]),.DD(DD),.EAR(EAR),
-      .ID({ID,"_INFIFO"}),.EDBG(EDBG),
+      .ID({ID,"_INFIFO",IDX_STR}),.EDBG(EDBG),
       .B_AW(B_AW),.B_DW(B_DW))
     fifo_in_s0_inst (
       .wrclk(wrclks[i]),.wrrst(wrrsts[i]),

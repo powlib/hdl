@@ -10,7 +10,7 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   parameter                  IN_NFS   = 0;
   parameter                  IN_D     = 8;
   parameter                  IN_S     = 0;
-  parameter                  B_SIZE   = 8'd15;
+  parameter                  B_SIZE   = 8'hFF;
   parameter                  B_BPD    = 4;
   parameter                  B_AW     = `POWLIB_BW*B_BPD;
   localparam                 B_DW     = `POWLIB_BW*B_BPD;
@@ -36,7 +36,7 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   input  wire                rdrdy;
       
          wire [B_DW-1:0]     wrdata_s0_0;
-         wire [B_DW-1:0]     rddata_s0_0;
+         wire [B_DW-1:0]     rddata_s1_0;
          wire [B_DW-1:0]     wrbe_s0_0;
          wire [RAM_WIDX-1:0] wridx_s0_0;
          wire [RAM_WIDX-1:0] rdidx_s0_0;
@@ -47,7 +47,6 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
          wire [B_AW-1:0]     addr_s0_0;
          wire [B_WW-1:0]     data_s0_0;
          wire [B_DW-1:0]     data_s0_1;
-         wire [B_DW-1:0]     data_s0_2;
          wire [B_BEW-1:0]    be_s0_0;
          wire [B_OPW-1:0]    op_s0_0;
          
@@ -64,9 +63,9 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   for (i=0; i<B_BPD; i=i+1) begin
     localparam [powlib_itoaw(i)-1:0] IDX_STR = powlib_itoa(i);  
     wire be_s0_1 = (vld_s0_0)&&(op_s0_0==`POWLIB_OP_WRITE)&&(be_s0_0[i]);
-    powlib_dpram         #(.W(`POWLIB_BW),.D(RAM_D),.EDBG(EDBG),.ID({ID,"_DPRAM",IDX_STR})) ram_inst (
+    powlib_dpram         #(.W(`POWLIB_BW),.D(RAM_D),.EDBG(EDBG),.ID({ID,"_DPRAM",IDX_STR}),.ERRD(1)) ram_inst (
       .wridx(wridx_s0_0),.wrdata(wrdata_s0_0[(i*`POWLIB_BW)+:`POWLIB_BW]),.wrvld(be_s0_1),
-      .rdidx(rdidx_s0_0),.rddata(rddata_s0_0[(i*`POWLIB_BW)+:`POWLIB_BW]),.clk(clk));
+      .rdidx(rdidx_s0_0),.rddata(rddata_s1_0[(i*`POWLIB_BW)+:`POWLIB_BW]),.clk(clk));
   end
   
   // FIFO the input data.
@@ -83,17 +82,15 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   powlib_ipunpackintr0 #(.B_BPD(B_BPD)) unpack_s0_inst  (.wrdata(data_s0_0),.rddata(data_s0_1),.rdbe(be_s0_0),.rdop(op_s0_0));
   
   // Stage the valid read address data. The data from the write interface becomes the return address. Determine if read operation occurs.
-  // Finally, stage the output of the RAM.
   assign wridx_s0_0  = addr_s0_0[RAM_LB+:RAM_WIDX];
   assign wrdata_s0_0 = data_s0_1;  
   assign rdidx_s0_0  = wridx_s0_0;
-  assign vld_s0_1    = (vld_s0_0==1)&&(op_s0_0==`POWLIB_OP_READ);
-  assign data_s0_2   = rddata_s0_0;
+  assign vld_s0_1    = (vld_s0_0==1)&&(op_s0_0==`POWLIB_OP_READ);  
   powlib_flipflop #(.W(1),   .EAR(EAR)) vld_s0_s1_inst  (.d(vld_s0_1),          .q(vld_s1_0), .clk(clk),.rst(rst));
   powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s0_s1_inst (.d(data_s0_1[0+:B_AW]),.q(addr_s1_0),.clk(clk),.rst(1'd0));
-  powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s0_s1_inst (.d(data_s0_2),         .q(data_s1_0),.clk(clk),.rst(1'd0));
   
-  // Stage the data from the last step before FIFO. Pack the data as well.
+  // Stage the data. Pack the data as well.
+  assign data_s1_0   = rddata_s1_0;
   powlib_flipflop #(.W(1),   .EAR(EAR)) vld_s1_s2_inst  (.d(vld_s1_0), .q(vld_s2_0), .clk(clk),.rst(rst));
   powlib_flipflop #(.W(B_AW),.EAR(EAR)) addr_s1_s2_inst (.d(addr_s1_0),.q(addr_s2_0),.clk(clk),.rst(1'd0));
   powlib_flipflop #(.W(B_DW),.EAR(EAR)) data_s1_s2_inst (.d(data_s1_0),.q(data_s2_0),.clk(clk),.rst(1'd0));
