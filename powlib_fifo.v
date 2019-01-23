@@ -373,35 +373,31 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
   output     wire               rdvld;           //                  Valid data is available
   input      wire               rdrdy;           //                  Read for data
     
-             wire    [WPTR-1:0] wrptr, rdptr_s0_0, rdptrm1_s0_0;      
-             wire    [W-1:0]    rddata_s1_0;
+             wire    [WPTR-1:0] wrptr, rdptr0, rdptrm1;     
              
-  assign                        wrrdy = (wrptr!=rdptrm1_s0_0) && !rst;
-             wire               wrinc = wrvld && wrrdy; 
-             wire               wrclr = (wrptr==(D-1))   && wrinc;    
+  assign                        wrrdy  = (wrptr!=rdptrm1)  && !rst;
+             wire               wrinc  =  wrvld && wrrdy; 
+             wire               wrclr  = (wrptr==(D-1))    && wrinc;    
              
-  assign                        rddata = rddata_s1_0;
-  assign                        rdvld  = rdvld_s1_0;
-             wire               rdvld_s0_0 = (rdptr_s0_0!=wrptr)   && !rst;
-             wire               rdinc_s0_0 = rdvld_s0_0 && rdrdy;    
-             wire               rdinc_s1_0 = rdvld_s1_0 && rdrdy;             
-             wire               rdclr_s0_0 = (rdptr_s0_0==(D-1))   && rdinc_s0_0;   
+  assign                        rdvld  = rdvld1;
+             wire               rdvld0 = (rdptr0!=wrptr)   && !rst;
+             wire               rdinc0 = rdvld0 && rdrdy;    
+             wire               rdinc1 = rdvld1 && rdrdy;             
+             wire               rdclr0 = (rdptr0==(D-1))   && rdinc0;   
 
              wire    [WPTR-1:0] amtcurr;
-             wire               amtop = wrinc || rdinc_s0_0;      
-             wire    [WPTR-1:0] amtdx = (wrinc!=0 && rdinc_s0_0==0) ?  1 : 
-                                        (wrinc==0 && rdinc_s0_0!=0) ? -1 : 0;
-  assign                        wrnf  = (amtcurr>=NFT)   || rst;                     
+             wire               amtop  =  wrinc || rdinc0;      
+             wire    [WPTR-1:0] amtdx  = (wrinc!=0 && rdinc0==0) ?  1 : 
+                                         (wrinc==0 && rdinc0!=0) ? -1 : 0;
+  assign                        wrnf   = (amtcurr>=NFT)   || rst;                     
   
-  powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 wrcntr_inst  (.cntr(wrptr),.adv(wrinc),.clr(wrclr),.clk(clk),.rst(rst));
-  powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR))                 rdcntr_inst  (.cntr(rdptr_s0_0),.adv(rdinc_s0_0),.clr(rdclr_s0_0),.clk(clk),.rst(rst));
-  powlib_flipflop #(.W(WPTR),.INIT(D-1),.EVLD(1),.EAR(EAR))     rdptrm1_inst (.d(rdptr_s0_0),.q(rdptrm1_s0_0),.clk(clk),.rst(rst),.vld(rdinc_s0_0));
-  powlib_cntr     #(.W(WPTR),.ELD(0),.EAR(EAR),.EDX(1))         nfcntr_inst  (.cntr(amtcurr),.adv(amtop),.dx(amtdx),.clr(1'b0),.clk(clk),.rst(rst));
+  powlib_cntr     #(.W(WPTR),.ELD(0),            .EAR(EAR))  wrcntr_inst (.cntr(wrptr),  .adv(wrinc),           .clr(wrclr), .clk(clk),.rst(rst));
+  powlib_cntr     #(.W(WPTR),.ELD(0),            .EAR(EAR))  rdcntr_inst (.cntr(rdptr0), .adv(rdinc0),          .clr(rdclr0),.clk(clk),.rst(rst));
+  powlib_cntr     #(.W(WPTR),.ELD(0), .EDX(1),   .EAR(EAR))  nfcntr_inst (.cntr(amtcurr),.adv(amtop),.dx(amtdx),.clr(1'b0),  .clk(clk),.rst(rst));  
+  powlib_flipflop #(.W(WPTR),.EVLD(1),.INIT(D-1),.EAR(EAR)) rdptrm1_inst (.d(rdptr0),.q(rdptrm1),.vld(rdinc0),               .clk(clk),.rst(rst));  
+  powlib_flipflop #(.W(1),   .EVLD(1),           .EAR(EAR))   rdvld_inst (.d(rdvld0),.q(rdvld1), .vld(rdinc0||rdinc1),       .clk(clk),.rst(rst));
   
-
-  powlib_flipflop #(.W(1),.EVLD(1),.EAR(EAR)) rdvld_s0_s1_0_inst (.d(rdvld_s0_0),.q(rdvld_s1_0),.clk(clk),.rst(rst),.vld(rdinc_s0_0||rdinc_s1_0));
-  
-  powlib_dpram    #(.W(W),.D(D),.EDBG(EDBG),.ID({ID,"_DPRAM"}),.ERRD(1),.ERDRDY(1)) ram_inst     (.wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc),.rdidx(rdptr_s0_0),.rddata(rddata_s1_0),.rdrdy(rdinc_s0_0),.clk(clk));
+  powlib_dpram    #(.W(W),.D(D),.EDBG(EDBG),.ID({ID,"_DPRAM"}),.ERRD(1),.ERDRDY(1)) ram_inst (.wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc),.rdidx(rdptr0),.rddata(rddata),.rdrdy(rdinc0),.clk(clk));
 
   initial begin
     if ((NFS+1)>D) begin
