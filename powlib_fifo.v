@@ -347,10 +347,7 @@ endmodule
 module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
 
   /* --------------------------------- 
-   * Synchronous FIFO
-   * Due to the nature of how the FIFO
-   * is architectured, it's advisable
-   * to register the outputs.   
+   * Synchronous FIFO  
    * --------------------------------- */
 
 `include "powlib_std.vh"
@@ -416,9 +413,6 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
 
   /* --------------------------------- 
    * Asynchronous FIFO
-   * Due to the nature of how the FIFO
-   * is architectured, it's advisable
-   * to register the outputs.
    * --------------------------------- */
 
 `include "powlib_std.vh"
@@ -438,10 +432,11 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
   input      wire            wrclk;           // Write Clock
   input      wire            wrrst;           // Write Reset
   input      wire            rdclk;           // Read Clock
-  input      wire            rdrst;           // Read Reset
-             wire            wrinc;
-             wire [WPTR-1:0] wrptr, graywrptr, graywrptr0;
+  input      wire            rdrst;           // Read Reset            
+             wire [WPTR-1:0] wrptr, graywrptr,   graywrptr0;
              wire [WPTR-1:0] rdptr, grayrdptrm1, grayrdptrm10;
+             wire            rdinc1 = rdvld1 && rdrdy; 
+             assign          rdvld  = rdvld1;
   
   powlib_afifo_wrcntrl #(.W(WPTR),.EAR(EAR)) wrcntrl_inst (
     .wrptr(wrptr),.graywrptr(graywrptr),.grayrdptrm1(grayrdptrm10),
@@ -449,9 +444,9 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
     .wrclk(wrclk),.wrrst(wrrst));
     
   powlib_afifo_rdcntrl #(.W(WPTR),.EAR(EAR)) rdcntrl_inst (
-    .rdptr(rdptr),.grayrdptrm1(grayrdptrm1),.graywrptr(graywrptr0),
-    .rdvld(rdvld),.rdrdy(rdrdy),
-    .rdclk(rdclk),.rdrst(rdrst));
+    .rdptr(rdptr), .grayrdptrm1(grayrdptrm1),.graywrptr(graywrptr0),
+    .rdvld(rdvld0),.rdrdy(rdrdy),.rdinc(rdinc0),
+    .rdclk(rdclk), .rdrst(rdrst));
     
   powlib_ffsync #(.W(WPTR),.INIT(0),.EAR(EAR)) graywrptr_sync_inst (
     .d(graywrptr),.q(graywrptr0),
@@ -460,10 +455,12 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
   powlib_ffsync #(.W(WPTR),.INIT(powlib_grayencode({WPTR{1'd1}})),.EAR(EAR)) grayrdptrm1_sync_inst (
     .d(grayrdptrm1),.q(grayrdptrm10),
     .aclk(rdclk),.bclk(wrclk),.arst(rdrst),.brst(wrrst));
+    
+  powlib_flipflop #(.W(1),.EVLD(1),.EAR(EAR)) rdvld_inst (.d(rdvld0),.q(rdvld1),.vld(rdinc0||rdinc1),.clk(rdclk),.rst(rdrst));
 
-  powlib_dpram #(.W(W),.D(D),.EDBG(EDBG),.ID({ID,"_DPRAM"})) ram_inst (
-    .wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc),
-    .rdidx(rdptr),.rddata(rddata),.clk(wrclk));
+  powlib_dpram #(.W(W),.D(D),.EDBG(EDBG),.ERRD(1),.ERDRDY(1),.EASYNC(1),.ID({ID,"_DPRAM"})) ram_inst (
+    .wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc), .wrclk(wrclk),
+    .rdidx(rdptr),.rddata(rddata),.rdrdy(rdinc0),.rdclk(rdclk));
   
   initial begin
     if ((1<<WPTR)!=D) begin
@@ -509,7 +506,7 @@ module powlib_afifo_wrcntrl(wrptr,graywrptr,grayrdptrm1,wrvld,wrrdy,wrinc,wrclk,
   
 endmodule
 
-module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst);
+module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst,rdinc);
 
 `include "powlib_std.vh"
 
@@ -520,6 +517,7 @@ module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst)
   input     wire [W-1:0] graywrptr;
   output    wire         rdvld;
   input     wire         rdrdy;
+  output    wire         rdinc;
   input     wire         rdclk;
   input     wire         rdrst;
             wire [W-1:0] grayrdptr;
@@ -527,6 +525,7 @@ module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst)
             wire [W-1:0] rdptr0;
             wire         rdinc0 = rdvld0 && rdrdy;
   assign                 rdvld  = rdvld0;
+  assign                 rdinc  = rdinc0;
   
   powlib_flipflop #(.W(W),.INIT(0),.EAR(EAR),.EVLD(1)) rdptr0_inst (
     .d(rdptr0),.q(rdptr),.vld(rdinc0),.clk(rdclk),.rst(rdrst));
