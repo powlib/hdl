@@ -372,29 +372,29 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
     
              wire    [WPTR-1:0] wrptr, rdptr0, rdptrm1;     
              
-  assign                        wrrdy  = (wrptr!=rdptrm1)  && !rst;
+  assign                        wrrdy  = (wrptr!=rdptrm1) && !rst;
              wire               wrinc  =  wrvld && wrrdy; 
-             wire               wrclr  = (wrptr==(D-1))    && wrinc;    
+             wire               wrclr  = (wrptr==(D-1))   && wrinc;    
              
   assign                        rdvld  = rdvld1;
-             wire               rdvld0 = (rdptr0!=wrptr)   && !rst;
-             wire               rdinc0 = rdvld0 && (rdrdy||!rdvld1);    
-             wire               rdinc1 = rdvld1 && rdrdy;             
-             wire               rdclr0 = (rdptr0==(D-1))   && rdinc0;   
+             wire               rdvld0 = (rdptr0!=wrptr)  && !rst;
+             wire               rdinc  = rdvld0 && (rdrdy||!rdvld1);    
+             wire               rdrdy0 = rdinc || (rdvld1 && rdrdy);             
+             wire               rdclr0 = (rdptr0==(D-1))  && rdinc;   
 
              wire    [WPTR-1:0] amtcurr;
-             wire               amtop  =  wrinc || rdinc0;      
-             wire    [WPTR-1:0] amtdx  = (wrinc!=0 && rdinc0==0) ?  1 : 
-                                         (wrinc==0 && rdinc0!=0) ? -1 : 0;
+             wire               amtop  =  wrinc || rdinc;      
+             wire    [WPTR-1:0] amtdx  = (wrinc!=0 && rdinc==0) ?  1 : 
+                                         (wrinc==0 && rdinc!=0) ? -1 : 0;
   assign                        wrnf   = (amtcurr>=NFT)   || rst;                     
   
   powlib_cntr     #(.W(WPTR),.ELD(0),            .EAR(EAR))  wrcntr_inst (.cntr(wrptr),  .adv(wrinc),           .clr(wrclr), .clk(clk),.rst(rst));
-  powlib_cntr     #(.W(WPTR),.ELD(0),            .EAR(EAR))  rdcntr_inst (.cntr(rdptr0), .adv(rdinc0),          .clr(rdclr0),.clk(clk),.rst(rst));
+  powlib_cntr     #(.W(WPTR),.ELD(0),            .EAR(EAR))  rdcntr_inst (.cntr(rdptr0), .adv(rdinc),           .clr(rdclr0),.clk(clk),.rst(rst));
   powlib_cntr     #(.W(WPTR),.ELD(0), .EDX(1),   .EAR(EAR))  nfcntr_inst (.cntr(amtcurr),.adv(amtop),.dx(amtdx),.clr(1'b0),  .clk(clk),.rst(rst));  
-  powlib_flipflop #(.W(WPTR),.EVLD(1),.INIT(D-1),.EAR(EAR)) rdptrm1_inst (.d(rdptr0),.q(rdptrm1),.vld(rdinc0),               .clk(clk),.rst(rst));  
-  powlib_flipflop #(.W(1),   .EVLD(1),           .EAR(EAR))   rdvld_inst (.d(rdvld0),.q(rdvld1), .vld(rdinc0||rdinc1),       .clk(clk),.rst(rst));
+  powlib_flipflop #(.W(WPTR),.EVLD(1),.INIT(D-1),.EAR(EAR)) rdptrm1_inst (.d(rdptr0),.q(rdptrm1),.vld(rdinc),                .clk(clk),.rst(rst));  
+  powlib_flipflop #(.W(1),   .EVLD(1),           .EAR(EAR))   rdvld_inst (.d(rdvld0),.q(rdvld1), .vld(rdrdy0),               .clk(clk),.rst(rst));
   
-  powlib_dpram    #(.W(W),.D(D),.EDBG(EDBG),.ID({ID,"_DPRAM"}),.ERRD(1),.ERDRDY(1)) ram_inst (.wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc),.rdidx(rdptr0),.rddata(rddata),.rdrdy(rdinc0),.clk(clk));
+  powlib_dpram    #(.W(W),.D(D),.EDBG(EDBG),.ID({ID,"_DPRAM"}),.ERRD(1),.ERDRDY(1)) ram_inst (.wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc),.rdidx(rdptr0),.rddata(rddata),.rdrdy(rdrdy0),.clk(clk));
 
   initial begin
     if ((NFS+1)>D) begin
@@ -434,7 +434,7 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
   input      wire            rdrst;           // Read Reset            
              wire [WPTR-1:0] wrptr, graywrptr,   graywrptr0;
              wire [WPTR-1:0] rdptr, grayrdptrm1, grayrdptrm10;
-             wire            rdinc1 = rdvld1 && rdrdy; 
+             wire            rdrdy0 = rdinc || (rdvld1 && rdrdy); 
              assign          rdvld  = rdvld1;
   
   powlib_afifo_wrcntrl #(.W(WPTR),.EAR(EAR)) wrcntrl_inst (
@@ -444,7 +444,7 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
     
   powlib_afifo_rdcntrl #(.W(WPTR),.EAR(EAR)) rdcntrl_inst (
     .rdptr(rdptr), .grayrdptrm1(grayrdptrm1),.graywrptr(graywrptr0),
-    .rdvld(rdvld0),.rdvld1(rdvld1),.rdrdy(rdrdy),.rdinc(rdinc0),
+    .rdvld(rdvld0),.rdvld1(rdvld1),.rdrdy(rdrdy),.rdinc(rdinc),
     .rdclk(rdclk), .rdrst(rdrst));
     
   powlib_ffsync #(.W(WPTR),.INIT(0),.EAR(EAR)) graywrptr_sync_inst (
@@ -455,11 +455,11 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
     .d(grayrdptrm1),.q(grayrdptrm10),
     .aclk(rdclk),.bclk(wrclk),.arst(rdrst),.brst(wrrst));
     
-  powlib_flipflop #(.W(1),.EVLD(1),.EAR(EAR)) rdvld_inst (.d(rdvld0),.q(rdvld1),.vld(rdinc0||rdinc1),.clk(rdclk),.rst(rdrst));
+  powlib_flipflop #(.W(1),.EVLD(1),.EAR(EAR)) rdvld_inst (.d(rdvld0),.q(rdvld1),.vld(rdrdy0),.clk(rdclk),.rst(rdrst));
 
   powlib_dpram #(.W(W),.D(D),.EDBG(EDBG),.ERRD(1),.ERDRDY(1),.EASYNC(1),.ID({ID,"_DPRAM"})) ram_inst (
     .wridx(wrptr),.wrdata(wrdata),.wrvld(wrinc), .wrclk(wrclk),
-    .rdidx(rdptr),.rddata(rddata),.rdrdy(rdinc0),.rdclk(rdclk));
+    .rdidx(rdptr),.rddata(rddata),.rdrdy(rdrdy0),.rdclk(rdclk));
   
   initial begin
     if ((1<<WPTR)!=D) begin

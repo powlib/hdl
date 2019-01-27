@@ -83,6 +83,8 @@ endmodule
 
 module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rddata,rdaddr,rdvld,rdrdy,rdclk,rdrst);
 
+`include "powlib_std.vh"   
+
   /* --------------------------------- 
    * Crossbar Lanes
    * --------------------------------- */
