@@ -266,7 +266,7 @@ module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,rdrdy,clk,wrclk,rdclk);
   input     wire               wrvld;                     // Write data valid
   input     wire    [W-1:0]    wrbe;                      // Write bit enable
   input     wire    [WIDX-1:0] rdidx;                     // Read index
-  output    reg     [W-1:0]    rddata;                    // Read data
+  output    reg     [W-1:0]    rddata=0;                  // Read data
   input     wire               rdrdy;                     // Read data ready
   input     wire               clk;                       // Clock (for synchronous mode)
   input     wire               wrclk;                     // Write Clock (for asynchronous mode)
@@ -276,11 +276,11 @@ module powlib_dpram(wridx,wrdata,wrvld,wrbe,rdidx,rddata,rdrdy,clk,wrclk,rdclk);
             reg                rdrdy0;
             integer            i; 
 
-  /* 
+  /** 
    * It's interesting to see clock re-assignment doesn't
    * appear to change the positive clock edge event to the wrong
    * event order. Potentially dangerous? Simulations still pass.
-   */
+   **/
   assign wrclk0 = (EASYNC!=0) ? wrclk : clk; 
   assign rdclk0 = (EASYNC!=0) ? rdclk : clk;
               

@@ -378,7 +378,7 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
              
   assign                        rdvld  = rdvld1;
              wire               rdvld0 = (rdptr0!=wrptr)   && !rst;
-             wire               rdinc0 = rdvld0 && rdrdy;    
+             wire               rdinc0 = rdvld0 && (rdrdy||!rdvld1);    
              wire               rdinc1 = rdvld1 && rdrdy;             
              wire               rdclr0 = (rdptr0==(D-1))   && rdinc0;   
 
@@ -408,7 +408,6 @@ module powlib_sfifo(wrdata,wrvld,wrrdy,wrnf,rddata,rdvld,rdrdy,clk,rst);
   end
 
 endmodule
-
 module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrst);
 
   /* --------------------------------- 
@@ -445,7 +444,7 @@ module powlib_afifo(wrdata,wrvld,wrrdy,rddata,rdvld,rdrdy,wrclk,wrrst,rdclk,rdrs
     
   powlib_afifo_rdcntrl #(.W(WPTR),.EAR(EAR)) rdcntrl_inst (
     .rdptr(rdptr), .grayrdptrm1(grayrdptrm1),.graywrptr(graywrptr0),
-    .rdvld(rdvld0),.rdrdy(rdrdy),.rdinc(rdinc0),
+    .rdvld(rdvld0),.rdvld1(rdvld1),.rdrdy(rdrdy),.rdinc(rdinc0),
     .rdclk(rdclk), .rdrst(rdrst));
     
   powlib_ffsync #(.W(WPTR),.INIT(0),.EAR(EAR)) graywrptr_sync_inst (
@@ -506,7 +505,7 @@ module powlib_afifo_wrcntrl(wrptr,graywrptr,grayrdptrm1,wrvld,wrrdy,wrinc,wrclk,
   
 endmodule
 
-module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst,rdinc);
+module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdvld1,rdrdy,rdclk,rdrst,rdinc);
 
 `include "powlib_std.vh"
 
@@ -516,6 +515,7 @@ module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst,
   output    wire [W-1:0] grayrdptrm1;
   input     wire [W-1:0] graywrptr;
   output    wire         rdvld;
+  input     wire         rdvld1;
   input     wire         rdrdy;
   output    wire         rdinc;
   input     wire         rdclk;
@@ -523,7 +523,7 @@ module powlib_afifo_rdcntrl(rdptr,grayrdptrm1,graywrptr,rdvld,rdrdy,rdclk,rdrst,
             wire [W-1:0] grayrdptr;
             wire         rdvld0 = (graywrptr!=grayrdptr) && !rdrst;
             wire [W-1:0] rdptr0;
-            wire         rdinc0 = rdvld0 && rdrdy;
+            wire         rdinc0 = rdvld0 && (rdrdy||!rdvld1);
   assign                 rdvld  = rdvld0;
   assign                 rdinc  = rdinc0;
   
