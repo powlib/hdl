@@ -1,39 +1,43 @@
 
 module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk,rst);
 
+  /* --------------------------------- 
+   * IP RAM.   
+   * --------------------------------- */
+
 `include "powlib_std.vh"
 `include "powlib_ip.vh"
   
-  parameter                  ID       = "IPRAM";  // String identifier  
-  parameter                  EAR      = 0;        // Enable asynchronous reset  
-  parameter                  EDBG     = 0;
-  parameter                  IN_NFS   = 0;
-  parameter                  IN_D     = 8;
-  parameter                  IN_S     = 0;
-  parameter                  B_SIZE   = 8'hFF;
-  parameter                  B_BPD    = 4;
-  parameter                  B_AW     = `POWLIB_BW*B_BPD;
-  localparam                 B_DW     = `POWLIB_BW*B_BPD;
-  localparam                 B_BEW    = B_BPD;
-  localparam                 B_OPW    = `POWLIB_OPW;
-  localparam                 B_WW     = B_OPW+B_BEW+B_DW;
-  localparam                 RAM_D    = (B_SIZE+1)/B_BPD;
-  localparam                 RAM_WIDX = powlib_clogb2(RAM_D);
+  parameter                  ID       = "IPRAM";              // String Identifier  
+  parameter                  EAR      = 0;                    // Enable Asynchronous Reset  
+  parameter                  EDBG     = 0;                    // Enable Debug
+  parameter                  IN_NFS   = 0;                    // Input FIFO Nearly Full Stages
+  parameter                  IN_D     = 8;                    // Input FIFO Depth
+  parameter                  IN_S     = 0;                    // Input FIFO Pipeline Stages
+  parameter                  B_SIZE   = 8'hFF;                // Bus Size (size in bytes-1)
+  parameter                  B_BPD    = 4;                    // Bus Bytes Per Data (must be a power of 2)
+  parameter                  B_AW     = `POWLIB_BW*B_BPD;     // Bus Address Width (must be equal to or greater than B_AW)
+  localparam                 B_DW     = `POWLIB_BW*B_BPD;     // Bus Data Width
+  localparam                 B_BEW    = B_BPD;                // Bus Byte Enable Width
+  localparam                 B_OPW    = `POWLIB_OPW;          // Bus Operation Width
+  localparam                 B_WW     = B_OPW+B_BEW+B_DW;     // Bus Packed Data Width
+  localparam                 RAM_D    = (B_SIZE+1)/B_BPD;     // RAM Depth
+  localparam                 RAM_WIDX = powlib_clogb2(RAM_D); // RAM Writing/Reading Index Width
   localparam                 RAM_LB   = powlib_clogb2(B_BPD);
 
-  input  wire                clk;
-  input  wire                rst;
+  input  wire                clk;                             // Clock
+  input  wire                rst;                             // Active-High Reset
       
-  input  wire [B_AW-1:0]     wraddr;
-  input  wire [B_WW-1:0]     wrdata;
-  input  wire                wrvld;
-  output wire                wrrdy;
-  output wire                wrnf;
+  input  wire [B_AW-1:0]     wraddr;                          // Write Address
+  input  wire [B_WW-1:0]     wrdata;                          // Write Data
+  input  wire                wrvld;                           // Write Valid
+  output wire                wrrdy;                           // Write Ready
+  output wire                wrnf;                            // Write Nearly-Full
       
-  output wire [B_AW-1:0]     rdaddr;
-  output wire [B_WW-1:0]     rddata;
-  output wire                rdvld;
-  input  wire                rdrdy;
+  output wire [B_AW-1:0]     rdaddr;                          // Read Address
+  output wire [B_WW-1:0]     rddata;                          // Read Data
+  output wire                rdvld;                           // Read Valid
+  input  wire                rdrdy;                           // Read Ready
       
          wire [B_DW-1:0]     wrdata_s0_0;
          wire [B_DW-1:0]     rddata_s1_0;
@@ -104,6 +108,10 @@ module powlib_ipram(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,clk
   initial begin
     if (B_DW<B_AW) begin
       $display("ID: %s, B_DW: %d, B_AW: %d, B_DW must be equal to or greater than B_AW", ID, B_DW, B_AW);
+      $finish;
+    end
+    if ((1<<RAM_LB)!=B_BPD) begin
+      $display("ID: %s, B_BPD: %d, B_BPD is not a power of 2.", ID, B_BPD);
       $finish;
     end
   end

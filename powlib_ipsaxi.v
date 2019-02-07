@@ -8,81 +8,83 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
                      rid,rdata,rresp,rlast,rvalid,rready,
                      clk,rst);
                      
+  /* --------------------------------- 
+   * IP Slave AXI4-Full to PLB.   
+   * Allows an AXI interface the ability
+   * to access a PLB interface.
+   * --------------------------------- */                     
+                     
 `include "powlib_std.vh"
 `include "powlib_ip.vh"                      
                      
-  parameter                     ID        = "IPSAXI";  // String identifier  
-  parameter                     EAR       = 0;     // Enable asynchronous reset  
-  parameter                     EDBG      = 0;
-  parameter                     IDW       = 1;
-  parameter                     IN_D      = 8;
-  parameter                     IN_NFS    = 0;
-  parameter                     IN_S      = 0;
-  parameter                     WR_D      = 0;
-  parameter                     WR_S      = 0;
-  parameter                     RD_D      = 0;
-  parameter                     RD_S      = 0;
-  parameter                     B_BPD     = 4;
-  parameter                     B_AW      = `POWLIB_BW*B_BPD;
-  parameter [B_AW-1:0]          B_BASE    = {B_AW{1'd0}};  
-  localparam                    B_DW      = `POWLIB_BW*B_BPD;
-  localparam                    B_BEW     = B_BPD;
-  localparam                    B_OPW     = `POWLIB_OPW;
-  localparam                    B_WW      = B_OPW+B_BEW+B_DW;                      
-  
-                     
-  /* GLOBAL SYNCHRONIZATION INTERFACE */
-  input  wire                   clk;
-  input  wire                   rst;
+  parameter                     ID        = "IPSAXI";           // String Identifier  
+  parameter                     EAR       = 0;                  // Enable Asynchronous Reset  
+  parameter                     EDBG      = 0;                  // Enable Debug
+  parameter                     IDW       = 1;                  // AXI ID Width
+  parameter                     IN_D      = 8;                  // Input FIFO Depth
+  parameter                     IN_NFS    = 0;                  // Input FIFO Nearly Full Stages
+  parameter                     IN_S      = 0;                  // Input FIFO Pipeline Stages
+  parameter                     WR_D      = 0;                  // AXI Write Data FIFO Depth
+  parameter                     WR_S      = 0;                  // AXI Write Data FIFO Pipeline Stages
+  parameter                     RD_D      = 0;                  // Reading Control Data FIFO Depth
+  parameter                     RD_S      = 0;                  // Reading Control Data FIFO Pipeline Stages
+  parameter                     B_BPD     = 4;                  // Bus Bytes Per Data
+  parameter                     B_AW      = `POWLIB_BW*B_BPD;   // Bus Address Width
+  parameter [B_AW-1:0]          B_BASE    = {B_AW{1'd0}};       // Bus Base Address (base address of IP)
+  localparam                    B_DW      = `POWLIB_BW*B_BPD;   // Bus Data Width
+  localparam                    B_BEW     = B_BPD;              // Bus Byte Enables Width
+  localparam                    B_OPW     = `POWLIB_OPW;        // Bus Operation Width
+  localparam                    B_WW      = B_OPW+B_BEW+B_DW;   // Bus Packed Data Width                   
+                       
+  input  wire                   clk;                            // Clock
+  input  wire                   rst;                            // Active-High Reset
       
-  /* POWLIB INTERFACE */  
-  // Writing 
-  input  wire [B_AW-1:0]        wraddr;
-  input  wire [B_WW-1:0]        wrdata;
-  input  wire                   wrvld;
-  output wire                   wrrdy;
-  output wire                   wrnf;      
-  // Reading
-  output wire [B_AW-1:0]        rdaddr;
-  output wire [B_WW-1:0]        rddata;
-  output wire                   rdvld;
-  input  wire                   rdrdy; 
+                                                                // PLB Write Interface:
+  input  wire [B_AW-1:0]        wraddr;                         // Address
+  input  wire [B_WW-1:0]        wrdata;                         // Data
+  input  wire                   wrvld;                          // Valid
+  output wire                   wrrdy;                          // Ready
+  output wire                   wrnf;                           // Nearly-Full
+                                                                // PLB Read Interface:
+  output wire [B_AW-1:0]        rdaddr;                         // Address
+  output wire [B_WW-1:0]        rddata;                         // Data
+  output wire                   rdvld;                          // Valid
+  input  wire                   rdrdy;                          // Ready
   
-  /* MASTER AXI INTERFACE */
-  // Address Writing
-  input  wire [IDW-1:0]         awid;
-  input  wire [B_AW-1:0]        awaddr;
-  input  wire [`AXI_LENW-1:0]   awlen;
-  input  wire [`AXI_SIZEW-1:0]  awsize;
-  input  wire [`AXI_BURSTW-1:0] awburst;
-  input  wire                   awvalid;
-  output wire                   awready;
-  // Writing Data 
-  input  wire [B_DW-1:0]        wdata;
-  input  wire [B_BEW-1:0]       wstrb;
-  input  wire                   wlast;
-  input  wire                   wvalid;
-  output wire                   wready;
-  // Writing Response
-  output wire [`AXI_RESPW-1:0]  bresp;
-  output wire [IDW-1:0]         bid;
-  output wire                   bvalid;
-  input  wire                   bready;
-  // Address Reading 
-  input  wire [IDW-1:0]         arid;
-  input  wire [B_AW-1:0]        araddr;
-  input  wire [`AXI_LENW-1:0]   arlen;
-  input  wire [`AXI_SIZEW-1:0]  arsize;
-  input  wire [`AXI_BURSTW-1:0] arburst;
-  input  wire                   arvalid;
-  output wire                   arready;
-  // Reading Data
-  output wire [IDW-1:0]         rid;
-  output wire [B_DW-1:0]        rdata;
-  output wire [`AXI_RESPW-1:0]  rresp;
-  output wire                   rlast;
-  output wire                   rvalid;
-  input  wire                   rready;
+                                                                // Slave AXI Address Write Interface:
+  input  wire [IDW-1:0]         awid;                           // Identifier
+  input  wire [B_AW-1:0]        awaddr;                         // Address
+  input  wire [`AXI_LENW-1:0]   awlen;                          // Length
+  input  wire [`AXI_SIZEW-1:0]  awsize;                         // Size
+  input  wire [`AXI_BURSTW-1:0] awburst;                        // Burst
+  input  wire                   awvalid;                        // Valid
+  output wire                   awready;                        // Ready
+                                                                // Slave AXI Write Data Interface:
+  input  wire [B_DW-1:0]        wdata;                          // Data
+  input  wire [B_BEW-1:0]       wstrb;                          // Strobe
+  input  wire                   wlast;                          // Last
+  input  wire                   wvalid;                         // Valid
+  output wire                   wready;                         // Ready
+                                                                // Slave AXI Write Response Interface:
+  output wire [`AXI_RESPW-1:0]  bresp;                          // Response
+  output wire [IDW-1:0]         bid;                            // Identifier
+  output wire                   bvalid;                         // Valid
+  input  wire                   bready;                         // Ready
+                                                                // Slave AXI Address Read Interface:
+  input  wire [IDW-1:0]         arid;                           // Identifier
+  input  wire [B_AW-1:0]        araddr;                         // Address
+  input  wire [`AXI_LENW-1:0]   arlen;                          // Length
+  input  wire [`AXI_SIZEW-1:0]  arsize;                         // Size
+  input  wire [`AXI_BURSTW-1:0] arburst;                        // Burst
+  input  wire                   arvalid;                        // Valid
+  output wire                   arready;                        // Ready
+                                                                // Slave AXI Read Data Interface:
+  output wire [IDW-1:0]         rid;                            // Identifier
+  output wire [B_DW-1:0]        rdata;                          // Data
+  output wire [`AXI_RESPW-1:0]  rresp;                          // Response
+  output wire                   rlast;                          // Last
+  output wire                   rvalid;                         // Valid
+  input  wire                   rready;                         // Ready
   
   wire [B_WW-1:0]  data_s0_0, data_z1_0;
   wire [B_AW-1:0]  addr_wz0_0, addr_rz0_0, addr_z0_0, addr_z1_0, addr_s0_0;

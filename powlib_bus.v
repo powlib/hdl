@@ -150,7 +150,7 @@ module powlib_buscross_lane(wrdatas,wraddrs,wrvlds,wrrdys,wrnfs,wrclks,wrrsts,rd
     assign          addr_in_0     = wraddrs[i*B_AW+:B_AW];
     assign          data_in_0     = wrdatas[i*B_DW+:B_DW];
     assign          cond_in_0     = (addr_in_0>=B_BASE) && (addr_in_0<=B_HIGH);       // -Only permit the entry of transactions whose 
-    assign          vld_in_0      = cond_in_0 && wrvlds[i];                           //  address falls in the memory space of the lane.
+    assign          vld_in_0      = wrvlds[i] &&  cond_in_0;                          //  address falls in the memory space of the lane.
     assign          wrrdys[i]     = rdy_in_0  || !cond_in_0;
     assign          wrnfs[i]      = nf_in_0; 
     assign          conds_s0_0[i] = ((i==0) ? 0 :  conds_s0_0[i-1]) || vld_s0_0;      // -The bus writing interface with a valid transaction and whose identifier i
