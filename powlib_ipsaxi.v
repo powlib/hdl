@@ -9,7 +9,7 @@ module powlib_ipsaxi(wraddr,wrdata,wrvld,wrrdy,wrnf,rdaddr,rddata,rdvld,rdrdy,
                      clk,rst);
                      
   /* --------------------------------- 
-   * IP Slave AXI4-Full to PLB.   
+   * IP Slave AXI4-Full to PLB Interface.   
    * Allows an AXI interface the ability
    * to access a PLB interface.
    * --------------------------------- */                     
